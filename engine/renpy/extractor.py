@@ -3,19 +3,19 @@ extractor.py
 
 Responsável pela extração dos arquivos de jogos Ren'Py.
 
-IMPORTANTE sobre as ferramentas externas:
+A obtenção das ferramentas externas (unrpa/unrpyc) é delegada ao
+ToolManager (core/tool_manager.py): unrpa é instalado via pip
+automaticamente se faltar, e o unrpyc é baixado e cacheado sob
+demanda nas duas variantes (master = Ren'Py 8, legacy = Ren'Py 6/7),
+tentando uma e caindo para a outra automaticamente quando a versão
+do jogo não é conhecida de antemão. Isso é o que torna o app
+universal: não é necessário descobrir/baixar/configurar nada na mão
+na maioria dos casos.
 
-- unrpa (arquivos .rpa): tem pacote pip oficial (`pip install unrpa`),
-  então chamamos via `python -m unrpa`, que funciona mesmo quando o
-  executável `unrpa` não está no PATH (comum em venvs no Windows).
-
-- unrpyc (arquivos .rpyc): NÃO tem pacote pip oficial. É um script
-  `unrpyc.py` (+ pasta `decompiler/`) que o usuário baixa do GitHub
-  em https://github.com/CensoredUsername/unrpyc e cuja versão precisa
-  bater com a versão do Ren'Py usada para compilar o jogo. Por isso
-  o caminho para esse script é configurável (config.json ->
-  "unrpyc_path"), e tentamos localizá-lo automaticamente antes de
-  desistir.
+Se o usuário preferir usar uma cópia própria do unrpyc (por exemplo
+uma build com deobfuscação customizada para um jogo específico),
+ainda é possível apontar para ela via config.json -> "unrpyc_path",
+que tem prioridade sobre o download automático.
 """
 
 from pathlib import Path
@@ -25,6 +25,7 @@ import sys
 
 from core.logger import Logger
 from core.config_manager import ConfigManager
+from core.tool_manager import ToolManager
 
 
 class RenPyExtractor:
@@ -34,6 +35,10 @@ class RenPyExtractor:
         self.logger = Logger()
 
         self.config = ConfigManager()
+
+        self.tools = ToolManager(
+            self.config.get("tools_folder", "tools")
+        )
 
     # -------------------------------------------------
     # Utilitários
@@ -49,63 +54,6 @@ class RenPyExtractor:
         )
 
         return output
-
-    # -------------------------------------------------
-
-    def find_unrpyc(self) -> str | None:
-        """Tenta localizar o unrpyc.py em, nesta ordem:
-
-        1. Configuração salva (config.json -> unrpyc_path)
-        2. Uma pasta 'tools/unrpyc' ao lado do projeto
-        3. O PATH do sistema (caso o usuário tenha criado um .bat/.sh
-           chamado 'unrpyc' que encapsule 'python unrpyc.py')
-        """
-
-        configured = self.config.get("unrpyc_path")
-
-        if configured:
-
-            path = Path(configured)
-
-            if path.exists():
-                return str(path)
-
-            self.logger.warning(
-                f"unrpyc_path configurado ('{configured}') não existe."
-            )
-
-        local_candidate = Path("tools") / "unrpyc" / "unrpyc.py"
-
-        if local_candidate.exists():
-            return str(local_candidate)
-
-        found_on_path = shutil.which("unrpyc")
-
-        if found_on_path:
-            return found_on_path
-
-        return None
-
-    # -------------------------------------------------
-
-    def is_unrpa_available(self) -> bool:
-
-        if shutil.which("unrpa"):
-            return True
-
-        try:
-
-            result = subprocess.run(
-                [sys.executable, "-m", "unrpa", "--version"],
-                capture_output=True,
-                check=False
-            )
-
-            return result.returncode == 0
-
-        except FileNotFoundError:
-
-            return False
 
     # -------------------------------------------------
 
@@ -139,6 +87,8 @@ class RenPyExtractor:
 
         return copied
 
+    # -------------------------------------------------
+    # unrpa
     # -------------------------------------------------
 
     def extract_rpa(
@@ -190,46 +140,86 @@ class RenPyExtractor:
         )
 
     # -------------------------------------------------
+    # unrpyc
+    # -------------------------------------------------
 
-    def decompile_rpyc(
-        self,
-        game_folder: str
-    ):
-
-        unrpyc_script = self.find_unrpyc()
-
-        if unrpyc_script is None:
-
-            raise FileNotFoundError(
-                "unrpyc.py não encontrado. Baixe em "
-                "https://github.com/CensoredUsername/unrpyc "
-                "(escolha a versão compatível com o Ren'Py do jogo) "
-                "e configure o caminho em Configurações "
-                "-> unrpyc_path."
-            )
-
-        game_folder = Path(game_folder)
-
-        self.logger.info(
-            "Descompilando arquivos .rpyc..."
-        )
+    def _run_unrpyc(self, script_path: Path, game_folder: str):
 
         result = subprocess.run(
-            [sys.executable, unrpyc_script, str(game_folder)],
+            [sys.executable, str(script_path), str(game_folder)],
             capture_output=True,
             text=True
         )
 
         if result.returncode != 0:
 
-            raise RuntimeError(
-                f"Falha ao descompilar: {result.stderr.strip()}"
-            )
+            raise RuntimeError(result.stderr.strip() or result.stdout.strip())
 
-        self.logger.info(
-            "Descompilação concluída."
-        )
+    # ---------------------------------------------------
 
+    def decompile_rpyc(self, game_folder: str) -> bool:
+        """Tenta descompilar usando, nesta ordem:
+
+        1. unrpyc_path configurado manualmente (se existir)
+        2. unrpyc branch 'master' (baixado/cacheado automaticamente)
+        3. unrpyc branch 'legacy' (baixado/cacheado automaticamente)
+
+        Retorna True se algum deles funcionou.
+        """
+
+        manual_path = self.config.get("unrpyc_path")
+
+        if manual_path and Path(manual_path).exists():
+
+            try:
+
+                self._run_unrpyc(Path(manual_path), game_folder)
+
+                self.logger.info(
+                    "Descompilado com sucesso usando o unrpyc "
+                    "configurado manualmente."
+                )
+
+                return True
+
+            except RuntimeError as error:
+
+                self.logger.warning(
+                    f"unrpyc configurado manualmente falhou: {error}"
+                )
+
+        for branch in ("master", "legacy"):
+
+            script = self.tools.ensure_unrpyc(branch)
+
+            if script is None:
+                # Sem internet ou falha no download - não adianta
+                # tentar a outra branch agora, mas não é um erro
+                # fatal ainda (pode já ter dado certo com outra).
+                continue
+
+            try:
+
+                self._run_unrpyc(script, game_folder)
+
+                self.logger.info(
+                    f"Descompilado com sucesso usando unrpyc "
+                    f"({branch})."
+                )
+
+                return True
+
+            except RuntimeError as error:
+
+                self.logger.warning(
+                    f"Falha ao descompilar com unrpyc ({branch}): "
+                    f"{error}"
+                )
+
+        return False
+
+    # -------------------------------------------------
+    # Fluxo completo
     # -------------------------------------------------
 
     def extract_all(
@@ -248,11 +238,10 @@ class RenPyExtractor:
             output
         )
 
-        # Extrai todos os .rpa, se houver e a ferramenta estiver
-        # disponível
+        # Extrai todos os .rpa, se houver
         if game_info["archives"]:
 
-            if self.is_unrpa_available():
+            if self.tools.ensure_unrpa():
 
                 for archive in game_info["archives"]:
 
@@ -261,24 +250,22 @@ class RenPyExtractor:
             else:
 
                 warnings.append(
-                    "Existem arquivos .rpa, mas 'unrpa' não está "
-                    "disponível. Instale com: pip install unrpa"
+                    "Existem arquivos .rpa, mas não foi possível "
+                    "instalar/usar 'unrpa' automaticamente. Tente "
+                    "manualmente: pip install unrpa"
                 )
 
-        # Descompila scripts .rpyc, se houver e a ferramenta estiver
-        # configurada
+        # Descompila scripts .rpyc, se houver
         if game_info["compiled_scripts"]:
 
-            if self.find_unrpyc():
+            success = self.decompile_rpyc(
+                game_info["game_folder"]
+            )
 
-                self.decompile_rpyc(
-                    game_info["game_folder"]
-                )
+            if success:
 
-                # Depois de descompilar, os novos .rpy aparecem
-                # dentro da própria pasta do jogo (é assim que o
-                # unrpyc funciona: gera .rpy ao lado do .rpyc).
-                # Precisamos copiá-los também para o workspace.
+                # O unrpyc gera os .rpy dentro da própria pasta do
+                # jogo, ao lado dos .rpyc. Copiamos para o workspace.
                 self.copy_scripts(
                     game_info["game_folder"],
                     output
@@ -287,11 +274,12 @@ class RenPyExtractor:
             else:
 
                 warnings.append(
-                    "Existem arquivos .rpyc compilados, mas "
-                    "'unrpyc_path' não está configurado. Baixe o "
-                    "unrpyc em "
-                    "https://github.com/CensoredUsername/unrpyc "
-                    "e configure o caminho em Configurações."
+                    "Existem arquivos .rpyc compilados, mas não foi "
+                    "possível descompilá-los automaticamente (nem "
+                    "com master nem com legacy do unrpyc). Verifique "
+                    "sua conexão com a internet, ou configure "
+                    "'unrpyc_path' em Configurações apontando para "
+                    "uma cópia própria."
                 )
 
         for warning in warnings:
