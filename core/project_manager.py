@@ -301,3 +301,65 @@ class ProjectManager:
     def delete_dialogue(self, dialogue_id: int):
 
         self.database.delete_dialogue(dialogue_id)
+
+    def get_dialogue(self, dialogue_id: int):
+
+        row = self.database.get_dialogue(dialogue_id)
+
+        if row is None:
+            return None
+
+        file_path, _, line = row["character"].rpartition(":")
+
+        return {
+            "id": row["id"],
+            "file": file_path,
+            "line": int(line) if line.isdigit() else 0,
+            "original": row["original"],
+            "translated": row["translated"] or "",
+            "status": row["status"]
+        }
+
+    def restore_dialogue(self, dialogue_id: int):
+
+        self.database.restore_dialogue(dialogue_id)
+
+    # ===================================================
+    # CRUD de idiomas
+    # ===================================================
+
+    def add_language(self, code: str, name: str):
+
+        language_id = self.database.insert_language(code, name)
+
+        self.logger.info(f"Idioma '{name}' ({code}) adicionado.")
+
+        return language_id
+
+    def list_languages(self):
+
+        rows = self.database.get_languages()
+
+        return [dict(row) for row in rows]
+
+    def edit_language(self, language_id: int, code: str, name: str):
+
+        self.database.update_language(language_id, code, name)
+
+        self.logger.info(f"Idioma #{language_id} atualizado.")
+
+    def remove_language(self, language_id: int):
+
+        self.database.delete_language(language_id)
+
+        self.logger.warning(f"Idioma #{language_id} removido.")
+
+    def set_default_language(self, code: str):
+
+        self.database.set_setting("default_language", code)
+
+        self.logger.info(f"Idioma padrão definido: {code}")
+
+    def get_default_language(self):
+
+        return self.database.get_setting("default_language", "pt_BR")

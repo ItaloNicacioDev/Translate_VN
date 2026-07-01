@@ -227,6 +227,85 @@ class Database:
             (project_id,)
         )
 
+    def get_dialogue(self, dialogue_id: int):
+
+        return self.fetch_one(
+            "SELECT * FROM dialogues WHERE id=?",
+            (dialogue_id,)
+        )
+
+    def restore_dialogue(self, dialogue_id: int):
+        """Apaga a tradução da linha e devolve o status para 'pending'."""
+
+        self.execute(
+            "UPDATE dialogues SET translated=?, status=? WHERE id=?",
+            ("", "pending", dialogue_id)
+        )
+
+    # ===================================================
+    # Idiomas (CRUD)
+    # ===================================================
+
+    def insert_language(self, code: str, name: str):
+
+        self.execute(
+            "INSERT INTO languages(code, name) VALUES(?,?)",
+            (code, name)
+        )
+
+        return self.cursor.lastrowid
+
+    def get_languages(self):
+
+        return self.fetch_all(
+            "SELECT * FROM languages ORDER BY name"
+        )
+
+    def get_language(self, language_id: int):
+
+        return self.fetch_one(
+            "SELECT * FROM languages WHERE id=?",
+            (language_id,)
+        )
+
+    def update_language(self, language_id: int, code: str, name: str):
+
+        self.execute(
+            "UPDATE languages SET code=?, name=? WHERE id=?",
+            (code, name, language_id)
+        )
+
+    def delete_language(self, language_id: int):
+
+        self.execute(
+            "DELETE FROM languages WHERE id=?",
+            (language_id,)
+        )
+
+    # ===================================================
+    # Configurações (settings) - chave/valor no banco
+    # ===================================================
+
+    def set_setting(self, key: str, value: str):
+
+        self.execute(
+            """
+            INSERT INTO settings(key, value)
+            VALUES(?, ?)
+            ON CONFLICT(key) DO UPDATE SET value=excluded.value
+            """,
+            (key, value)
+        )
+
+    def get_setting(self, key: str, default=None):
+
+        row = self.fetch_one(
+            "SELECT value FROM settings WHERE key=?",
+            (key,)
+        )
+
+        return row["value"] if row else default
+
     # ===================================================
     # Projetos (auxiliar)
     # ===================================================

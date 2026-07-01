@@ -1,0 +1,11 @@
+{
+    "language": "pt_BR",
+    "theme": "dark",
+    "projects_folder": "projects",
+    "backups_folder": "backups",
+    "exports_folder": "exports",
+    "temp_folder": "temp",
+    "auto_backup": true,
+    "auto_save": true,
+    "log_level": "INFO"
+}
