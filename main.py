@@ -360,25 +360,46 @@ class TranslateVN:
         if len(pending) > 500:
 
             print(
-                f"\n{len(pending)} diálogos pendentes. Traduzir "
-                "automaticamente via serviço online pode demorar "
-                "bastante (é uma requisição por linha) e pode ser "
-                "bloqueado temporariamente se o serviço perceber uso "
-                "excessivo. Considere traduzir aos poucos.\n"
+                f"\n{len(pending)} diálogos pendentes. Isso envolve "
+                "uma requisição por linha para o serviço de tradução "
+                "online, então pode demorar. O app vai retentar "
+                "automaticamente linhas que falharem, com pausas "
+                "pra evitar bloqueio por uso excessivo — não precisa "
+                "fazer nada, só aguardar.\n"
             )
 
         texts = [d["original"] for d in pending]
 
-        translated_texts = self.translator.translate_list(texts)
+        results = self.translator.translate_list(texts)
 
         updates = [
-            (translated, "translated", dialogue["id"])
-            for dialogue, translated in zip(pending, translated_texts)
+            (translated, "translated" if ok else "pending", dialogue["id"])
+            for dialogue, (translated, ok) in zip(pending, results)
+            if ok
         ]
 
-        self.project_manager.update_dialogues_translations_bulk(updates)
+        failed_count = len(pending) - len(updates)
 
-        print(f"\n{len(pending)} diálogos traduzidos.\n")
+        if updates:
+
+            self.project_manager.update_dialogues_translations_bulk(
+                updates
+            )
+
+        print(f"\n{len(updates)} diálogos traduzidos.")
+
+        if failed_count:
+
+            print(
+                f"{failed_count} continuam pendentes mesmo após as "
+                "retentativas automáticas (provavelmente algo "
+                "persistente, como um problema de conexão). Rode a "
+                "opção 4 de novo mais tarde para tentar essas.\n"
+            )
+
+        else:
+
+            print()
 
     # ===================================================
     # Passo 5 - Revisar / editar diálogos individualmente
