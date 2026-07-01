@@ -206,3 +206,98 @@ class ProjectManager:
         return (
             self.projects_folder / name
         ).exists()
+
+    def get_id(self, name: str):
+        """Retorna o id do projeto no banco de dados (necessário para o CRUD de diálogos)."""
+
+        return self.database.get_project_id(name)
+
+    def get_folder(self, name: str) -> Path:
+
+        return self.projects_folder / name
+
+    def get_temp_folder(self, name: str) -> Path:
+
+        folder = self.get_folder(name) / "temp"
+        folder.mkdir(parents=True, exist_ok=True)
+        return folder
+
+    def get_exports_folder(self, name: str) -> Path:
+
+        folder = self.get_folder(name) / "exports"
+        folder.mkdir(parents=True, exist_ok=True)
+        return folder
+
+    def get_backups_folder(self, name: str) -> Path:
+
+        folder = self.get_folder(name) / "backups"
+        folder.mkdir(parents=True, exist_ok=True)
+        return folder
+
+    # ===================================================
+    # CRUD de diálogos (wrappers do Database, para o resto
+    # da aplicação não precisar acessar o banco diretamente)
+    # ===================================================
+
+    def save_dialogues(self, project_id: int, dialogues: list):
+        """Substitui os diálogos do projeto pelos recém extraídos."""
+
+        self.database.clear_dialogues(project_id)
+
+        saved = []
+
+        for dialogue in dialogues:
+
+            dialogue_id = self.database.insert_dialogue(
+                project_id=project_id,
+                file_path=dialogue["file"],
+                line=dialogue["line"],
+                original=dialogue["original"],
+                translated=dialogue.get("translated", ""),
+                status=dialogue.get("status", "pending")
+            )
+
+            saved.append({
+                "id": dialogue_id,
+                "file": dialogue["file"],
+                "line": dialogue["line"],
+                "original": dialogue["original"],
+                "translated": dialogue.get("translated", ""),
+                "status": dialogue.get("status", "pending")
+            })
+
+        return saved
+
+    def load_dialogues(self, project_id: int):
+
+        rows = self.database.get_dialogues_by_project(project_id)
+
+        dialogues = []
+
+        for row in rows:
+
+            file_path, _, line = row["character"].rpartition(":")
+
+            dialogues.append({
+                "id": row["id"],
+                "file": file_path,
+                "line": int(line) if line.isdigit() else 0,
+                "original": row["original"],
+                "translated": row["translated"] or "",
+                "status": row["status"]
+            })
+
+        return dialogues
+
+    def update_dialogue_translation(
+        self,
+        dialogue_id: int,
+        translated: str,
+        status: str = "translated"
+    ):
+
+        self.database.update_dialogue(dialogue_id, translated, status)
+
+    def delete_dialogue(self, dialogue_id: int):
+
+        self.database.delete_dialogue(dialogue_id)
