@@ -357,26 +357,58 @@ class TranslateVN:
 
         self.translator.set_target_language(target)
 
-        if len(pending) > 500:
+        # Deduplicação: VNs costumam repetir muita linha (falas
+        # curtas, nomes, menus). Traduzimos cada texto único uma vez
+        # só e aplicamos o resultado em todas as ocorrências, em vez
+        # de fazer uma requisição por linha repetida.
+        unique_texts = []
+        text_to_pending_indices = {}
+
+        for index, dialogue in enumerate(pending):
+
+            text = dialogue["original"]
+
+            if text not in text_to_pending_indices:
+
+                text_to_pending_indices[text] = []
+                unique_texts.append(text)
+
+            text_to_pending_indices[text].append(index)
+
+        duplicates_saved = len(pending) - len(unique_texts)
+
+        if duplicates_saved > 0:
 
             print(
-                f"\n{len(pending)} diálogos pendentes. Isso envolve "
-                "uma requisição por linha para o serviço de tradução "
-                "online, então pode demorar. O app vai retentar "
-                "automaticamente linhas que falharem, com pausas "
-                "pra evitar bloqueio por uso excessivo — não precisa "
-                "fazer nada, só aguardar.\n"
+                f"\n{len(unique_texts)} textos únicos entre "
+                f"{len(pending)} diálogos pendentes "
+                f"({duplicates_saved} repetidos serão reaproveitados "
+                "sem nova requisição).\n"
             )
 
-        texts = [d["original"] for d in pending]
+        if len(unique_texts) > 500:
 
-        results = self.translator.translate_list(texts)
+            print(
+                f"{len(unique_texts)} textos para traduzir. Isso "
+                "envolve requisições para o serviço de tradução "
+                "online (em paralelo, com retentativa automática em "
+                "caso de falha) — pode demorar. Só aguardar.\n"
+            )
 
-        updates = [
-            (translated, "translated" if ok else "pending", dialogue["id"])
-            for dialogue, (translated, ok) in zip(pending, results)
-            if ok
-        ]
+        results = self.translator.translate_list(unique_texts)
+
+        updates = []
+
+        for text, (translated, ok) in zip(unique_texts, results):
+
+            if not ok:
+                continue
+
+            for pending_index in text_to_pending_indices[text]:
+
+                dialogue = pending[pending_index]
+
+                updates.append((translated, "translated", dialogue["id"]))
 
         failed_count = len(pending) - len(updates)
 
