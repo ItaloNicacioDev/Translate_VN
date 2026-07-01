@@ -244,29 +244,9 @@ class ProjectManager:
 
         self.database.clear_dialogues(project_id)
 
-        saved = []
+        self.database.insert_dialogues_bulk(project_id, dialogues)
 
-        for dialogue in dialogues:
-
-            dialogue_id = self.database.insert_dialogue(
-                project_id=project_id,
-                file_path=dialogue["file"],
-                line=dialogue["line"],
-                original=dialogue["original"],
-                translated=dialogue.get("translated", ""),
-                status=dialogue.get("status", "pending")
-            )
-
-            saved.append({
-                "id": dialogue_id,
-                "file": dialogue["file"],
-                "line": dialogue["line"],
-                "original": dialogue["original"],
-                "translated": dialogue.get("translated", ""),
-                "status": dialogue.get("status", "pending")
-            })
-
-        return saved
+        return self.load_dialogues(project_id)
 
     def load_dialogues(self, project_id: int):
 
@@ -297,6 +277,11 @@ class ProjectManager:
     ):
 
         self.database.update_dialogue(dialogue_id, translated, status)
+
+    def update_dialogues_translations_bulk(self, updates: list):
+        """updates: lista de tuplas (translated, status, dialogue_id)."""
+
+        self.database.update_dialogues_bulk(updates)
 
     def delete_dialogue(self, dialogue_id: int):
 

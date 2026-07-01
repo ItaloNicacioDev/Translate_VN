@@ -61,6 +61,16 @@ class Database:
 
         return self.cursor.fetchall()
 
+    def execute_many(self, query: str, params_list: list):
+        """Executa a mesma query para uma lista de parâmetros dentro
+        de UMA única transação/commit, em vez de um commit por linha
+        (que é o que torna inserções em massa extremamente lentas no
+        SQLite - cada commit força um fsync em disco)."""
+
+        self.cursor.executemany(query, params_list)
+
+        self.commit()
+
     def create_tables(self):
 
         self.execute("""
@@ -194,6 +204,35 @@ class Database:
 
         return self.cursor.lastrowid
 
+    def insert_dialogues_bulk(self, project_id: int, dialogues: list):
+        """Versão em massa de insert_dialogue: insere todos os
+        diálogos de uma vez, com um único commit no final, em vez de
+        um commit por linha. Para jogos com dezenas de milhares de
+        linhas, isso é a diferença entre segundos e vários minutos."""
+
+        rows = [
+            (
+                project_id,
+                None,
+                dialogue["file"] + f":{dialogue['line']}",
+                dialogue["original"],
+                dialogue.get("translated", ""),
+                dialogue.get("status", "pending")
+            )
+            for dialogue in dialogues
+        ]
+
+        self.execute_many(
+            """
+            INSERT INTO dialogues(
+                project_id, file_id, character,
+                original, translated, status
+            )
+            VALUES(?,?,?,?,?,?)
+            """,
+            rows
+        )
+
     def get_dialogues_by_project(self, project_id: int):
 
         return self.fetch_all(
@@ -211,6 +250,16 @@ class Database:
         self.execute(
             "UPDATE dialogues SET translated=?, status=? WHERE id=?",
             (translated, status, dialogue_id)
+        )
+
+    def update_dialogues_bulk(self, updates: list):
+        """updates: lista de tuplas (translated, status, dialogue_id).
+        Mesma ideia do insert_dialogues_bulk: um commit só, não um
+        por linha."""
+
+        self.execute_many(
+            "UPDATE dialogues SET translated=?, status=? WHERE id=?",
+            updates
         )
 
     def delete_dialogue(self, dialogue_id: int):

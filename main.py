@@ -357,17 +357,26 @@ class TranslateVN:
 
         self.translator.set_target_language(target)
 
+        if len(pending) > 500:
+
+            print(
+                f"\n{len(pending)} diálogos pendentes. Traduzir "
+                "automaticamente via serviço online pode demorar "
+                "bastante (é uma requisição por linha) e pode ser "
+                "bloqueado temporariamente se o serviço perceber uso "
+                "excessivo. Considere traduzir aos poucos.\n"
+            )
+
         texts = [d["original"] for d in pending]
 
         translated_texts = self.translator.translate_list(texts)
 
-        for dialogue, translated in zip(pending, translated_texts):
+        updates = [
+            (translated, "translated", dialogue["id"])
+            for dialogue, translated in zip(pending, translated_texts)
+        ]
 
-            self.project_manager.update_dialogue_translation(
-                dialogue["id"],
-                translated,
-                status="translated"
-            )
+        self.project_manager.update_dialogues_translations_bulk(updates)
 
         print(f"\n{len(pending)} diálogos traduzidos.\n")
 
