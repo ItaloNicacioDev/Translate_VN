@@ -94,6 +94,22 @@ class Translator:
 
             return text, False
 
+    @staticmethod
+    def _format_duration(seconds: float) -> str:
+
+        seconds = int(seconds)
+
+        hours, remainder = divmod(seconds, 3600)
+        minutes, secs = divmod(remainder, 60)
+
+        if hours > 0:
+            return f"{hours}h{minutes:02d}min"
+
+        if minutes > 0:
+            return f"{minutes}min{secs:02d}s"
+
+        return f"{secs}s"
+
     def translate_list(self, texts: list[str]):
         """Traduz a lista inteira em paralelo (MAX_WORKERS por vez),
         retentando automaticamente o que falhar entre rodadas, com
@@ -108,6 +124,14 @@ class Translator:
         pending_indices = list(range(total))
 
         round_number = 0
+
+        # Usados pra calcular o tempo estimado restante: taxa real
+        # de sucessos por segundo, medida desde o início (isso já
+        # embute o tempo perdido com retentativas, então a estimativa
+        # fica mais realista com o passar do tempo, não só otimista
+        # baseada na primeira rodada).
+        start_time = time.time()
+        success_count = 0
 
         while pending_indices and round_number <= self.MAX_RETRY_ROUNDS:
 
@@ -162,15 +186,38 @@ class Translator:
 
                         completed += 1
 
-                        if not ok:
+                        if ok:
+                            success_count += 1
+                        else:
                             still_pending.append(index)
 
+                        elapsed = time.time() - start_time
+
+                        remaining_texts = total - success_count
+
+                        if success_count >= 5 and elapsed > 1:
+
+                            rate = success_count / elapsed
+
+                            eta_seconds = remaining_texts / rate if rate > 0 else None
+
+                            eta_text = (
+                                f"faltam ~{self._format_duration(eta_seconds)}"
+                                if eta_seconds is not None else
+                                "calculando tempo restante..."
+                            )
+
+                        else:
+
+                            eta_text = "calculando tempo restante..."
+
                         print(
-                            f"[{completed}/{len(pending_indices)}]"
+                            f"[{success_count}/{total} traduzidos]"
                             + (
-                                f" ({len(still_pending)} falharam)"
+                                f" ({len(still_pending)} falharam nesta rodada)"
                                 if still_pending else ""
-                            ),
+                            )
+                            + f" | {eta_text}    ",
                             end="\r"
                         )
 
@@ -189,21 +236,24 @@ class Translator:
             pending_indices = still_pending
             round_number += 1
 
+        total_elapsed = time.time() - start_time
+
         failures = sum(1 for r in results if not r[1])
 
         if failures:
 
             self.logger.warning(
-                f"Tradução concluída com {failures} falha(s) "
-                f"persistente(s) de {total}, mesmo após "
-                f"{self.MAX_RETRY_ROUNDS} retentativa(s). Essas "
-                "linhas continuam como pendentes."
+                f"Tradução concluída em {self._format_duration(total_elapsed)} "
+                f"com {failures} falha(s) persistente(s) de {total}, mesmo "
+                f"após {self.MAX_RETRY_ROUNDS} retentativa(s). Essas linhas "
+                "continuam como pendentes."
             )
 
         else:
 
             self.logger.info(
-                "Tradução concluída, todas as linhas com sucesso."
+                f"Tradução concluída em {self._format_duration(total_elapsed)}, "
+                "todas as linhas com sucesso."
             )
 
         return results
