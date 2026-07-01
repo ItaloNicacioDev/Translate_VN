@@ -21,7 +21,8 @@ class RenPyCompiler:
     def compile(
         self,
         dialogues: list,
-        output_folder: str
+        output_folder: str,
+        source_base: str = None
     ):
 
         output = Path(output_folder)
@@ -51,7 +52,8 @@ class RenPyCompiler:
                 self.compile_file(
                     file,
                     data,
-                    output
+                    output,
+                    source_base
                 )
             )
 
@@ -67,7 +69,8 @@ class RenPyCompiler:
         self,
         source_file: str,
         dialogues: list,
-        output_folder: Path
+        output_folder: Path,
+        source_base: str = None
     ):
 
         source = Path(source_file)
@@ -101,7 +104,29 @@ class RenPyCompiler:
             + source.suffix
         )
 
-        destination = output_folder / output_name
+        # Preserva a estrutura de subpastas relativa à pasta
+        # de origem (source_base). Sem isso, arquivos com o
+        # mesmo nome em pastas diferentes se sobrescreviam e a
+        # estrutura ficava incompatível com a pasta "game/"
+        # original na hora de reaplicar a tradução.
+        if source_base is not None:
+
+            relative_dir = source.relative_to(
+                Path(source_base)
+            ).parent
+
+        else:
+
+            relative_dir = Path(".")
+
+        destination_folder = output_folder / relative_dir
+
+        destination_folder.mkdir(
+            parents=True,
+            exist_ok=True
+        )
+
+        destination = destination_folder / output_name
 
         destination.write_text(
 

@@ -159,3 +159,83 @@ class Database:
         self.connect()
 
         self.create_tables()
+
+    # ===================================================
+    # Diálogos (CRUD)
+    # ===================================================
+
+    def insert_dialogue(
+        self,
+        project_id: int,
+        file_path: str,
+        line: int,
+        original: str,
+        translated: str = "",
+        status: str = "pending"
+    ):
+
+        self.execute(
+            """
+            INSERT INTO dialogues(
+                project_id, file_id, character,
+                original, translated, status
+            )
+            VALUES(?,?,?,?,?,?)
+            """,
+            (
+                project_id,
+                None,
+                file_path + f":{line}",
+                original,
+                translated,
+                status
+            )
+        )
+
+        return self.cursor.lastrowid
+
+    def get_dialogues_by_project(self, project_id: int):
+
+        return self.fetch_all(
+            "SELECT * FROM dialogues WHERE project_id=? ORDER BY id",
+            (project_id,)
+        )
+
+    def update_dialogue(
+        self,
+        dialogue_id: int,
+        translated: str,
+        status: str = "translated"
+    ):
+
+        self.execute(
+            "UPDATE dialogues SET translated=?, status=? WHERE id=?",
+            (translated, status, dialogue_id)
+        )
+
+    def delete_dialogue(self, dialogue_id: int):
+
+        self.execute(
+            "DELETE FROM dialogues WHERE id=?",
+            (dialogue_id,)
+        )
+
+    def clear_dialogues(self, project_id: int):
+
+        self.execute(
+            "DELETE FROM dialogues WHERE project_id=?",
+            (project_id,)
+        )
+
+    # ===================================================
+    # Projetos (auxiliar)
+    # ===================================================
+
+    def get_project_id(self, name: str):
+
+        row = self.fetch_one(
+            "SELECT id FROM projects WHERE name=?",
+            (name,)
+        )
+
+        return row["id"] if row else None
