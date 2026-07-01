@@ -13,14 +13,17 @@ class Translator:
 
     def __init__(
         self,
-        source_language="auto",
-        target_language="pt"
+        source_language: str = "auto",
+        target_language: str = "pt"
     ):
 
         self.logger = Logger()
 
         self.source_language = source_language
         self.target_language = target_language
+
+        # Cache das traduções
+        self.cache: dict[str, str] = {}
 
         self.translator = GoogleTranslator(
             source=self.source_language,
@@ -55,13 +58,27 @@ class Translator:
 
     def translate(self, text: str) -> str:
 
-        if not text.strip():
+        if text is None:
+            return ""
 
+        if not text.strip():
             return text
+
+        # Procura no cache
+        if text in self.cache:
+
+            self.logger.debug(
+                f"Cache: {text[:40]}"
+            )
+
+            return self.cache[text]
 
         try:
 
             translated = self.translator.translate(text)
+
+            # Salva no cache
+            self.cache[text] = translated
 
             self.logger.debug(
                 f"Traduzido: {text[:40]}"
@@ -75,9 +92,9 @@ class Translator:
 
             return text
 
-    def translate_list(self, texts: list[str]):
+    def translate_list(self, texts: list[str]) -> list[str]:
 
-        result = []
+        result: list[str] = []
 
         total = len(texts)
 
@@ -104,19 +121,22 @@ class Translator:
 
         return result
 
-    def detect_language(self, text: str):
+    def clear_cache(self):
 
-        try:
+        self.cache.clear()
 
-            detector = GoogleTranslator(
-                source="auto",
-                target=self.target_language
-            )
+        self.logger.info(
+            "Cache de traduções limpo."
+        )
 
-            detector.translate(text)
+    def cache_size(self) -> int:
 
-            return detector.source
+        return len(self.cache)
 
-        except Exception:
+    def has_cache(self, text: str) -> bool:
 
-            return "unknown"
+        return text in self.cache
+
+    def get_cache(self) -> dict:
+
+        return self.cache.copy()
