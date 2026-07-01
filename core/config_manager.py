@@ -19,7 +19,11 @@ class ConfigManager:
         "temp_folder": "temp",
         "auto_backup": True,
         "auto_save": True,
-        "log_level": "INFO"
+        "log_level": "INFO",
+        # Caminho para o unrpyc.py (não existe pacote pip oficial,
+        # então o usuário aponta onde baixou o script do GitHub:
+        # https://github.com/CensoredUsername/unrpyc
+        "unrpyc_path": ""
     }
 
     def __init__(self, config_file: str = "config.json"):

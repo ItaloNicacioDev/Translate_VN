@@ -5,7 +5,6 @@ Translate VN
 Versão de testes (CLI)
 """
 
-import shutil
 from pathlib import Path
 
 from core.logger import Logger
@@ -295,31 +294,15 @@ class TranslateVN:
 
         info = self.detector.detect(project["game_path"])
 
-        if info["compiled_scripts"] and shutil.which("unrpyc") is None:
-
-            print(
-                "\nAviso: existem scripts .rpyc compilados, mas a "
-                "ferramenta 'unrpyc' não foi encontrada no PATH. "
-                "Eles não serão descompilados agora.\n"
-            )
-
-            info["compiled_scripts"] = []
-
-        if info["archives"] and shutil.which("unrpa") is None:
-
-            print(
-                "\nAviso: existem arquivos .rpa, mas a ferramenta "
-                "'unrpa' não foi encontrada no PATH. Eles não serão "
-                "extraídos agora.\n"
-            )
-
-            info["archives"] = []
-
         temp_folder = self.project_manager.get_temp_folder(
             project["name"]
         )
 
-        self.extractor.extract_all(info, str(temp_folder))
+        warnings = self.extractor.extract_all(info, str(temp_folder))
+
+        for warning in warnings:
+
+            print(f"\nAviso: {warning}")
 
         print(f"\nArquivos extraídos para: {temp_folder}\n")
 
@@ -683,7 +666,8 @@ class TranslateVN:
             "projects_folder",
             "auto_backup",
             "auto_save",
-            "log_level"
+            "log_level",
+            "unrpyc_path"
         ]
 
         while True:
