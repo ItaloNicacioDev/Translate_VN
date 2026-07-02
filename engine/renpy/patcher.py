@@ -45,21 +45,34 @@ class RenPyPatcher:
                 "Pasta do jogo não encontrada."
             )
 
+        files_to_copy = [
+            file for file in translated.rglob("*") if file.is_file()
+        ]
+
         if create_backup:
 
             backup_folder = game / "translatevn_backups"
 
-            self.backup.create_backup(
-                source_folder=str(game),
+            # Só faz backup dos arquivos que já existem no jogo e
+            # vão ser sobrescritos - não do jogo inteiro. A tradução
+            # normalmente só adiciona arquivos novos (ex: script_pt.
+            # rpy), então na maioria das vezes isso nem vai ter nada
+            # pra fazer backup.
+            files_that_would_be_overwritten = [
+                (game / file.relative_to(translated))
+                for file in files_to_copy
+                if (game / file.relative_to(translated)).exists()
+            ]
+
+            self.backup.create_selective_backup(
+                base_folder=str(game),
+                files=files_that_would_be_overwritten,
                 backup_folder=str(backup_folder)
             )
 
         copied = 0
 
-        for file in translated.rglob("*"):
-
-            if not file.is_file():
-                continue
+        for file in files_to_copy:
 
             destination = game / file.relative_to(translated)
 

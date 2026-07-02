@@ -66,6 +66,77 @@ class BackupManager:
 
         return backup_path
 
+    def create_selective_backup(
+        self,
+        base_folder: str,
+        files: list,
+        backup_folder: str
+    ):
+        """Faz backup só dos arquivos passados em `files` (caminhos
+        dentro de base_folder), em vez da pasta inteira. Usado
+        quando só um punhado de arquivos específicos está prestes a
+        ser sobrescrito - evita compactar GBs de assets (imagens,
+        áudio, vídeo) que nem vão ser tocados, o que em jogos
+        grandes pode levar de minutos a mais de uma hora à toa,
+        principalmente em HD.
+
+        Se `files` estiver vazio, não cria backup nenhum (não há
+        nada a proteger) e retorna None."""
+
+        if not files:
+
+            self.logger.info(
+                "Nenhum arquivo será sobrescrito, backup não é "
+                "necessário."
+            )
+
+            return None
+
+        base = Path(base_folder)
+
+        backup_dir = Path(backup_folder)
+
+        backup_dir.mkdir(
+            parents=True,
+            exist_ok=True
+        )
+
+        timestamp = datetime.now().strftime(
+            "%Y-%m-%d_%H-%M-%S"
+        )
+
+        backup_name = f"{base.name}_{timestamp}.zip"
+
+        backup_path = backup_dir / backup_name
+
+        self.logger.info(
+            f"Criando backup seletivo: {backup_name} "
+            f"({len(files)} arquivo(s) que serão sobrescritos)"
+        )
+
+        with zipfile.ZipFile(
+            backup_path,
+            "w",
+            zipfile.ZIP_DEFLATED
+        ) as zipf:
+
+            for file in files:
+
+                file = Path(file)
+
+                if file.is_file():
+
+                    zipf.write(
+                        file,
+                        file.relative_to(base)
+                    )
+
+        self.logger.info(
+            "Backup concluído."
+        )
+
+        return backup_path
+
     def list_backups(
         self,
         backup_folder: str
