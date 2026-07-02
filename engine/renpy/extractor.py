@@ -67,8 +67,20 @@ class RenPyExtractor:
         output = self.prepare_workspace(output_path)
 
         copied = 0
+        skipped_tl = 0
 
         for file in game_folder.rglob("*.rpy"):
+
+            # Arquivos dentro de qualquer pasta "tl" são traduções
+            # que o PRÓPRIO jogo já traz (estrutura oficial do
+            # Ren'Py: game/tl/<idioma>/*.rpy) - não é conteúdo
+            # original, é uma tradução já pronta de outra pessoa.
+            # Tratar isso como "original a traduzir" duplica
+            # trabalho e mistura textos de idiomas diferentes.
+            if "tl" in file.relative_to(game_folder).parts[:-1]:
+
+                skipped_tl += 1
+                continue
 
             destination = output / file.relative_to(game_folder)
 
@@ -80,6 +92,14 @@ class RenPyExtractor:
             shutil.copy2(file, destination)
 
             copied += 1
+
+        if skipped_tl:
+
+            self.logger.info(
+                f"{skipped_tl} script(s) ignorados por estarem "
+                "dentro de uma pasta de tradução já existente do "
+                "jogo (game/tl/...)."
+            )
 
         self.logger.info(
             f"{copied} scripts .rpy copiados."

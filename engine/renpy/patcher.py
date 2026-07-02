@@ -105,7 +105,7 @@ class RenPyPatcher:
 
         removed = 0
 
-        for file in game.rglob("*_pt.rpy"):
+        for file in game.rglob("*__translatevn_*.rpy"):
 
             file.unlink()
 
@@ -159,7 +159,7 @@ class RenPyPatcher:
 
         game = Path(game_folder)
 
-        for file in game.rglob("*_pt.rpy"):
+        for file in game.rglob("*__translatevn_*.rpy"):
 
             return True
 

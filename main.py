@@ -570,10 +570,13 @@ class TranslateVN:
             project["name"]
         )
 
+        target = project.get("language_translation", "pt_BR").split("_")[0]
+
         self.compiler.compile(
             translated,
             str(exports_folder),
-            source_base=str(temp_folder)
+            source_base=str(temp_folder),
+            language_code=target
         )
 
         print(f"\nPacote de tradução gerado em: {exports_folder}\n")

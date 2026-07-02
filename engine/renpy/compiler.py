@@ -22,7 +22,8 @@ class RenPyCompiler:
         self,
         dialogues: list,
         output_folder: str,
-        source_base: str = None
+        source_base: str = None,
+        language_code: str = "pt"
     ):
 
         output = Path(output_folder)
@@ -53,7 +54,8 @@ class RenPyCompiler:
                     file,
                     data,
                     output,
-                    source_base
+                    source_base,
+                    language_code
                 )
             )
 
@@ -70,7 +72,8 @@ class RenPyCompiler:
         source_file: str,
         dialogues: list,
         output_folder: Path,
-        source_base: str = None
+        source_base: str = None,
+        language_code: str = "pt"
     ):
 
         source = Path(source_file)
@@ -98,9 +101,14 @@ class RenPyCompiler:
                 1
             )
 
+        # Sufixo propositalmente incomum (prefixo duplo "__") e com
+        # o código do idioma, pra não colidir com um arquivo que o
+        # próprio jogo já tenha (ex: uma tradução PT distribuída
+        # pelo autor original chamada "capitulo1_pt.rpy" - um
+        # sufixo genérico "_pt" bateria em cima disso).
         output_name = (
             source.stem
-            + "_pt"
+            + f"__translatevn_{language_code}"
             + source.suffix
         )
 
