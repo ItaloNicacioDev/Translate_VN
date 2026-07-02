@@ -13,6 +13,31 @@ from core.logger import Logger
 
 class RenPyParser:
 
+    # Palavras que, no início da linha, indicam um comando Ren'Py
+    # (não uma fala de personagem) mesmo que a linha tenha o formato
+    # "identificador "texto"" - ex: scene "images/bg.png",
+    # show "cg.png", image nome = "arquivo.png" (esse último nem
+    # bate no regex por causa do "="), play music "trilha.ogg" etc.
+    NON_DIALOGUE_KEYWORDS = {
+        "scene", "show", "hide", "image", "play", "queue", "stop",
+        "define", "default", "python", "screen", "style",
+        "transform", "window", "with", "camera", "layer", "init",
+        "label", "jump", "call", "return", "menu", "if", "elif",
+        "else", "while", "for", "pause", "voice", "nvl", "add",
+        "use", "translate", "config", "persistent", "renpy",
+        "define_music", "text",
+    }
+
+    # Extensões de arquivo comuns em jogos Ren'Py - se o texto
+    # "traduzível" termina com uma dessas, é quase certo que é um
+    # caminho de asset (imagem, áudio, fonte), não diálogo.
+    ASSET_EXTENSIONS = (
+        ".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif",
+        ".ogg", ".mp3", ".wav", ".opus", ".ogv", ".webm", ".mp4",
+        ".ttf", ".otf", ".woff", ".rpy", ".rpyc", ".rpym",
+        ".rpymc", ".py", ".json", ".txt", ".csv",
+    )
+
     def __init__(self):
 
         self.logger = Logger()
@@ -90,7 +115,23 @@ class RenPyParser:
         if line.startswith("#"):
             return None
 
-        # "Texto"
+        first_word_match = re.match(
+            r"^([a-zA-Z_][a-zA-Z0-9_]*)",
+            line
+        )
+
+        if (
+            first_word_match
+            and first_word_match.group(1).lower() in self.NON_DIALOGUE_KEYWORDS
+        ):
+
+            return None
+
+        candidate = None
+
+        # "Texto"  OU  "Nome do Personagem" "Texto" (nesse segundo
+        # caso queremos a ÚLTIMA string entre aspas, que é a fala -
+        # a primeira é só o nome de exibição do personagem)
 
         if line.startswith('"'):
 
@@ -101,23 +142,66 @@ class RenPyParser:
 
             if result:
 
-                return result[0]
+                candidate = result[-1]
 
-        # e "Texto"
+        else:
 
-        result = re.search(
+            # tag "Texto"   (ex: e "Olá!")
 
-            r'^[a-zA-Z_][a-zA-Z0-9_]*\s+"(.*?)"$',
+            result = re.search(
+                r'^[a-zA-Z_][a-zA-Z0-9_]*\s+"(.*?)"$',
+                line
+            )
 
-            line
+            if result:
 
-        )
+                candidate = result.group(1)
 
-        if result:
+        if candidate is None:
 
-            return result.group(1)
+            return None
 
-        return None
+        if self._looks_like_asset_or_identifier(candidate):
+
+            return None
+
+        return candidate
+
+    # ------------------------------
+
+    def _looks_like_asset_or_identifier(self, text: str) -> bool:
+        """Heurística pra descartar coisas que batem no formato
+        regex de diálogo mas não são fala de verdade: caminhos de
+        arquivo de asset, tags de imagem, nomes de tela/transição
+        etc."""
+
+        stripped = text.strip()
+
+        if not stripped:
+            return True
+
+        lowered = stripped.lower()
+
+        if lowered.endswith(self.ASSET_EXTENSIONS):
+            return True
+
+        if "/" in stripped and " " not in stripped:
+            return True
+
+        # identificador tipo "gallery_nav", "bg_forest-day": só
+        # letras/números/_/- e SEM espaço. Diálogo de verdade quase
+        # sempre tem espaço, pontuação ou acento - um token cru com
+        # underscore/hífen e nada mais é sinal forte de ser código,
+        # não fala.
+        if (
+            ("_" in stripped or "-" in stripped)
+            and " " not in stripped
+            and re.fullmatch(r"[a-zA-Z0-9_\-]+", stripped)
+        ):
+
+            return True
+
+        return False
 
     # ------------------------------
 
