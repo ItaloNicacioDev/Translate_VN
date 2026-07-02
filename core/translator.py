@@ -113,10 +113,17 @@ class Translator:
     def translate_list(self, texts: list[str]):
         """Traduz a lista inteira em paralelo (MAX_WORKERS por vez),
         retentando automaticamente o que falhar entre rodadas, com
-        pausas crescentes. Retorna lista de tuplas
-        (texto_traduzido, sucesso), na mesma ordem/tamanho de
-        `texts`. Só sobra como sucesso=False o que falhar mesmo
-        depois de todas as retentativas."""
+        pausas crescentes. Retorna (results, interrompido):
+
+        - results: lista de tuplas (texto_traduzido, sucesso), na
+          mesma ordem/tamanho de `texts`. Itens não processados por
+          causa de uma interrupção ficam como (texto_original, False).
+        - interrompido: True se o usuário apertou Ctrl+C no meio do
+          processo.
+
+        Só sobra como sucesso=False o que falhar mesmo depois de
+        todas as retentativas, ou o que não deu tempo de processar
+        antes de uma interrupção."""
 
         total = len(texts)
 
@@ -132,6 +139,8 @@ class Translator:
         # baseada na primeira rodada).
         start_time = time.time()
         success_count = 0
+
+        interrupted = False
 
         while pending_indices and round_number <= self.MAX_RETRY_ROUNDS:
 
@@ -167,9 +176,18 @@ class Translator:
 
                 return index, translated, ok
 
-            with concurrent.futures.ThreadPoolExecutor(
+            # Sem "with": controlamos o shutdown na mão, porque o
+            # comportamento padrão do context manager é esperar TODAS
+            # as tarefas enfileiradas terminarem antes de sair - e
+            # aqui enfileiramos tudo de uma vez (só MAX_WORKERS rodam
+            # por vez, o resto fica na fila). Sem isso, um Ctrl+C não
+            # interrompe de verdade: ele fica preso esperando milhares
+            # de tarefas que nem começaram ainda.
+            executor = concurrent.futures.ThreadPoolExecutor(
                 max_workers=self.MAX_WORKERS
-            ) as executor:
+            )
+
+            try:
 
                 futures = [
                     executor.submit(process, index)
@@ -231,16 +249,59 @@ class Translator:
 
                             time.sleep(self.BATCH_PAUSE_SECONDS)
 
-            print()
+                executor.shutdown(wait=True)
+
+                print()
+
+            except KeyboardInterrupt:
+
+                print()
+
+                self.logger.warning(
+                    "Interrompido pelo usuário. Cancelando tarefas "
+                    "que ainda não começaram e aguardando as "
+                    f"{self.MAX_WORKERS} em andamento terminarem "
+                    "(alguns segundos)..."
+                )
+
+                # cancel_futures cancela imediatamente o que ainda
+                # está na fila; só as poucas que já estavam
+                # executando (no máximo MAX_WORKERS) terminam.
+                executor.shutdown(wait=True, cancel_futures=True)
+
+                interrupted = True
+
+                break
 
             pending_indices = still_pending
             round_number += 1
+
+            if interrupted:
+                break
+
+        # Qualquer índice que nunca chegou a ser processado (por
+        # causa da interrupção) entra como "não traduzido", em vez
+        # de None, pra quem chamar não precisar tratar esse caso
+        # separadamente.
+        for index in range(total):
+
+            if results[index] is None:
+
+                results[index] = (texts[index], False)
 
         total_elapsed = time.time() - start_time
 
         failures = sum(1 for r in results if not r[1])
 
-        if failures:
+        if interrupted:
+
+            self.logger.warning(
+                f"Tradução interrompida após {self._format_duration(total_elapsed)}. "
+                f"{success_count} de {total} traduzidos e já podem ser salvos; "
+                f"o restante fica pendente para uma próxima rodada."
+            )
+
+        elif failures:
 
             self.logger.warning(
                 f"Tradução concluída em {self._format_duration(total_elapsed)} "
@@ -256,7 +317,7 @@ class Translator:
                 "todas as linhas com sucesso."
             )
 
-        return results
+        return results, interrupted
 
     def detect_language(self, text: str):
 

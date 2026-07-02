@@ -395,7 +395,7 @@ class TranslateVN:
                 "caso de falha) — pode demorar. Só aguardar.\n"
             )
 
-        results = self.translator.translate_list(unique_texts)
+        results, interrupted = self.translator.translate_list(unique_texts)
 
         updates = []
 
@@ -417,6 +417,17 @@ class TranslateVN:
             self.project_manager.update_dialogues_translations_bulk(
                 updates
             )
+
+        if interrupted:
+
+            print(
+                f"\nInterrompido. {len(updates)} diálogos já "
+                "traduzidos foram salvos. O restante continua "
+                "pendente — rode a opção 4 de novo quando quiser "
+                "continuar de onde parou.\n"
+            )
+
+            return
 
         print(f"\n{len(updates)} diálogos traduzidos.")
 
