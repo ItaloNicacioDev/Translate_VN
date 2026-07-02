@@ -233,12 +233,30 @@ class Database:
             rows
         )
 
-    def get_dialogues_by_project(self, project_id: int):
+    def get_dialogues_by_project(self, project_id: int, status: str = None):
+
+        if status:
+
+            return self.fetch_all(
+                "SELECT * FROM dialogues WHERE project_id=? "
+                "AND status=? ORDER BY id",
+                (project_id, status)
+            )
 
         return self.fetch_all(
             "SELECT * FROM dialogues WHERE project_id=? ORDER BY id",
             (project_id,)
         )
+
+    def count_dialogues_by_status(self, project_id: int):
+
+        rows = self.fetch_all(
+            "SELECT status, COUNT(*) as total FROM dialogues "
+            "WHERE project_id=? GROUP BY status",
+            (project_id,)
+        )
+
+        return {row["status"]: row["total"] for row in rows}
 
     def update_dialogue(
         self,
