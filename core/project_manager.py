@@ -248,9 +248,9 @@ class ProjectManager:
 
         return self.load_dialogues(project_id)
 
-    def load_dialogues(self, project_id: int):
+    def load_dialogues(self, project_id: int, status: str = None):
 
-        rows = self.database.get_dialogues_by_project(project_id)
+        rows = self.database.get_dialogues_by_project(project_id, status)
 
         dialogues = []
 
@@ -268,6 +268,10 @@ class ProjectManager:
             })
 
         return dialogues
+
+    def count_dialogues_by_status(self, project_id: int):
+
+        return self.database.count_dialogues_by_status(project_id)
 
     def update_dialogue_translation(
         self,

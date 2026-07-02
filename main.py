@@ -452,9 +452,13 @@ class TranslateVN:
 
         while True:
 
-            dialogues = self.project_manager.load_dialogues(project["id"])
+            counts = self.project_manager.count_dialogues_by_status(
+                project["id"]
+            )
 
-            if not dialogues:
+            total = sum(counts.values())
+
+            if total == 0:
 
                 print(
                     "\nNenhum diálogo indexado ainda (opção 3).\n"
@@ -462,9 +466,71 @@ class TranslateVN:
 
                 return
 
-            print()
+            print("\n=== Revisar diálogos ===")
+            print(f"Total: {total}")
+            print(f"  Traduzidos: {counts.get('translated', 0)}")
+            print(f"  Revisados manualmente: {counts.get('reviewed', 0)}")
+            print(f"  Pendentes: {counts.get('pending', 0)}")
 
-            for dialogue in dialogues:
+            print(
+                "\n1 - Ver todos"
+                "\n2 - Ver só traduzidos"
+                "\n3 - Ver só revisados manualmente"
+                "\n4 - Ver só pendentes"
+                "\n0 - Voltar"
+            )
+
+            choice = input("\nEscolha: ").strip()
+
+            status_by_choice = {
+                "1": None,
+                "2": "translated",
+                "3": "reviewed",
+                "4": "pending",
+            }
+
+            if choice == "0":
+                return
+
+            if choice not in status_by_choice:
+
+                print("\nOpção inválida.\n")
+                continue
+
+            self._review_list(project, status_by_choice[choice])
+
+    def _review_list(self, project, status_filter):
+
+        page_size = 25
+        offset = 0
+
+        while True:
+
+            dialogues = self.project_manager.load_dialogues(
+                project["id"],
+                status=status_filter
+            )
+
+            total = len(dialogues)
+
+            if total == 0:
+
+                print("\nNenhum diálogo encontrado com esse filtro.\n")
+                return
+
+            if offset >= total:
+                offset = max(0, total - page_size)
+
+            page = dialogues[offset:offset + page_size]
+
+            label = status_filter or "todos"
+
+            print(
+                f"\n[{label}] Mostrando "
+                f"{offset + 1}-{offset + len(page)} de {total}\n"
+            )
+
+            for dialogue in page:
 
                 print(
                     f"[{dialogue['id']}] ({dialogue['status']}) "
@@ -473,10 +539,10 @@ class TranslateVN:
                 )
 
             print(
-                "\nDigite o ID de um diálogo para editar, "
-                "'r<ID>' para restaurar (ex: r12), "
-                "'d<ID>' para excluir a tradução (ex: d12), "
-                "ou 0 para voltar."
+                "\n'n' próxima página, 'p' página anterior, "
+                "ID para editar, 'r<ID>' restaurar (ex: r12), "
+                "'d<ID>' excluir tradução (ex: d12), "
+                "0 para voltar."
             )
 
             choice = input("\n> ").strip()
@@ -484,12 +550,26 @@ class TranslateVN:
             if choice == "0":
                 return
 
-            if choice.lower().startswith("r"):
+            if choice.lower() == "n":
+
+                if offset + page_size < total:
+                    offset += page_size
+                else:
+                    print("\nJá está na última página.\n")
+
+                continue
+
+            if choice.lower() == "p":
+
+                offset = max(0, offset - page_size)
+                continue
+
+            if choice.lower().startswith("r") and choice[1:].isdigit():
 
                 self._restore_dialogue(choice[1:])
                 continue
 
-            if choice.lower().startswith("d"):
+            if choice.lower().startswith("d") and choice[1:].isdigit():
 
                 self._delete_dialogue(choice[1:])
                 continue
@@ -511,15 +591,19 @@ class TranslateVN:
             print(f"\nOriginal: {dialogue['original']}")
             print(f"Tradução atual: {dialogue['translated']}")
 
-            new_text = input("Nova tradução: ")
-
-            self.project_manager.update_dialogue_translation(
-                int(choice),
-                new_text,
-                status="reviewed"
+            new_text = input(
+                "Nova tradução (Enter para manter, sem alterar): "
             )
 
-            print("\nAtualizado.\n")
+            if new_text.strip():
+
+                self.project_manager.update_dialogue_translation(
+                    int(choice),
+                    new_text,
+                    status="reviewed"
+                )
+
+                print("\nAtualizado.\n")
 
     def _restore_dialogue(self, raw_id):
 
