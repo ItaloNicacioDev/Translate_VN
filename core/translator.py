@@ -134,12 +134,16 @@ class Translator:
 
         try:
 
+            protected_text, protected = self._protect(text)
+
             translator = GoogleTranslator(
                 source=self.source_language,
                 target=self.target_language
             )
 
-            translated = translator.translate(text)
+            translated = translator.translate(protected_text)
+
+            translated = self._restore(translated, protected)
 
             self.logger.debug(
                 f"Traduzido: {text[:40]}"
