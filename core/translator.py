@@ -7,6 +7,7 @@ controlada e retentativa automática, pra viabilizar volumes grandes
 razoável sem tomar bloqueio do serviço gratuito.
 """
 
+import re
 import time
 import threading
 import concurrent.futures
@@ -17,6 +18,64 @@ from core.logger import Logger
 
 
 class Translator:
+
+    # Trechos que precisam ser preservados literalmente durante a
+    # tradução, porque o serviço de tradução (Google Tradutor) pode
+    # corrompê-los - especialmente aspas escapadas (\"), que às
+    # vezes voltam incompletas (some o "\" de fechamento), gerando
+    # um .rpy inválido ("end of line expected") na hora de compilar
+    # o jogo. Também protege tags Ren'Py ({b}, {size=+2}...),
+    # interpolações ([player_name]) e outras barras invertidas (\n,
+    # \\), que sofrem do mesmo tipo de problema.
+    _PROTECTED_PATTERN = re.compile(
+        r'\\"'            # aspas escapadas: \"
+        r'|\\n'            # quebra de linha escapada: \n
+        r'|\\\\'           # barra invertida escapada: \\
+        r'|\{[^{}]*\}'     # tags Ren'Py: {b}, {/b}, {size=+2}...
+        r'|\[[^\[\]]*\]'   # interpolação Ren'Py: [player_name]
+    )
+
+    # Placeholder feito só de letras/números, sem espaços ou
+    # pontuação, pra parecer uma "palavra desconhecida" pro tradutor
+    # e assim ter mais chance de sair ilesa da tradução.
+    _PLACEHOLDER_RE = re.compile(r'tvnph(\d+)end', re.IGNORECASE)
+
+    @classmethod
+    def _protect(cls, text: str):
+        """Substitui trechos sensíveis por placeholders antes de
+        mandar pro tradutor. Retorna (texto_protegido, lista de
+        trechos originais, na ordem dos placeholders)."""
+
+        protected = []
+
+        def _replace(match):
+
+            protected.append(match.group(0))
+
+            return f"tvnph{len(protected) - 1}end"
+
+        protected_text = cls._PROTECTED_PATTERN.sub(_replace, text)
+
+        return protected_text, protected
+
+    @classmethod
+    def _restore(cls, text: str, protected: list) -> str:
+        """Reverte os placeholders pros trechos originais, depois
+        que o texto já voltou traduzido."""
+
+        if not protected:
+            return text
+
+        def _replace(match):
+
+            index = int(match.group(1))
+
+            if 0 <= index < len(protected):
+                return protected[index]
+
+            return match.group(0)
+
+        return cls._PLACEHOLDER_RE.sub(_replace, text)
 
     # Quantas traduções em paralelo. Mais rápido, mas também mais
     # chance de o serviço gratuito reclamar de uso excessivo - o
