@@ -5,6 +5,7 @@ Responsável por gerar os arquivos traduzidos.
 """
 
 from pathlib import Path
+import re
 import shutil
 
 from core.logger import Logger
@@ -15,6 +16,29 @@ class RenPyCompiler:
     def __init__(self):
 
         self.logger = Logger()
+
+    # -------------------------------------------------
+
+    @staticmethod
+    def normalize_language_code(language_code: str) -> str:
+        """Reduz qualquer variação de código de idioma (pt_BR,
+        pt-BR, PT_pt, pt-br...) só as letras iniciais em
+        minúsculo (ex: "pt"). Isso evita que pequenas diferenças
+        de formatação no código do idioma gerem arquivos
+        traduzidos duplicados (ex: "..._pt.rpy" e
+        "..._pt-BR.rpy" coexistindo para o mesmo arquivo)."""
+
+        if not language_code:
+
+            return "pt"
+
+        match = re.match(r"[a-zA-Z]+", language_code)
+
+        if not match:
+
+            return "pt"
+
+        return match.group(0).lower()
 
     # -------------------------------------------------
 
@@ -32,6 +56,11 @@ class RenPyCompiler:
             parents=True,
             exist_ok=True
         )
+
+        # Normaliza o código do idioma pra evitar que variações de
+        # formatação (pt_BR, pt-BR, PT...) gerem arquivos
+        # duplicados pro mesmo idioma.
+        language_code = self.normalize_language_code(language_code)
 
         files = {}
 
@@ -135,6 +164,27 @@ class RenPyCompiler:
         )
 
         destination = destination_folder / output_name
+
+        # Remove qualquer tradução antiga já gerada pra este mesmo
+        # arquivo de origem (de execuções anteriores, possivelmente
+        # com outro código de idioma) antes de escrever a nova.
+        # Evita ficar com "capitulo1__translatevn_pt.rpy" e
+        # "capitulo1__translatevn_pt_pt.rpy" duplicados lado a lado.
+        old_pattern = (
+            source.stem
+            + "__translatevn_*"
+            + source.suffix
+        )
+
+        for old_file in destination_folder.glob(old_pattern):
+
+            if old_file != destination:
+
+                old_file.unlink()
+
+                self.logger.info(
+                    f"Tradução antiga removida: {old_file.name}"
+                )
 
         destination.write_text(
 

@@ -81,6 +81,34 @@ class RenPyPatcher:
                 exist_ok=True
             )
 
+            # Remove traduções antigas do mesmo arquivo de origem
+            # que já estejam no jogo (ex: de uma compilação
+            # anterior com outro código de idioma), pra não deixar
+            # duplicadas junto com a nova (ex: "..._pt.rpy" e
+            # "..._pt_pt.rpy" para o mesmo script).
+            if "__translatevn_" in destination.stem:
+
+                base_stem = destination.stem.split(
+                    "__translatevn_"
+                )[0]
+
+                old_pattern = (
+                    base_stem
+                    + "__translatevn_*"
+                    + destination.suffix
+                )
+
+                for old_file in destination.parent.glob(old_pattern):
+
+                    if old_file != destination and old_file.is_file():
+
+                        old_file.unlink()
+
+                        self.logger.info(
+                            f"Tradução antiga removida do jogo: "
+                            f"{old_file.name}"
+                        )
+
             shutil.copy2(
                 file,
                 destination

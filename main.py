@@ -688,8 +688,7 @@ class TranslateVN:
 
         confirm = input(
             f"\nIsso vai copiar os arquivos traduzidos para dentro "
-            f"de '{game_folder}', com backup automático antes. "
-            f"Confirmar? (s/n): "
+            f"de '{game_folder}'. Confirmar? (s/n): "
         )
 
         if confirm.lower() != "s":
@@ -697,13 +696,43 @@ class TranslateVN:
             print("\nOperação cancelada.\n")
             return
 
+        # Backup é opcional: o usuário decide na hora se quer ou
+        # não. O valor configurado em "auto_backup" (Configurações)
+        # só é usado como sugestão padrão da pergunta.
+        default_backup = bool(
+            self.project_manager.config.get("auto_backup", True)
+        )
+
+        default_label = "S" if default_backup else "N"
+
+        backup_input = input(
+            "Criar backup dos arquivos do jogo antes de aplicar a "
+            f"tradução? (s/n) [padrão: {default_label}]: "
+        ).strip().lower()
+
+        if backup_input == "":
+
+            create_backup = default_backup
+
+        else:
+
+            create_backup = backup_input == "s"
+
         self.patcher.apply_patch(
             str(exports_folder),
             str(game_folder),
-            create_backup=True
+            create_backup=create_backup
         )
 
-        print("\nTradução aplicada com sucesso.\n")
+        if create_backup:
+
+            print("\nTradução aplicada com sucesso (com backup).\n")
+
+        else:
+
+            print(
+                "\nTradução aplicada com sucesso (sem backup).\n"
+            )
 
     # ===================================================
     # Passo 8 - Remover tradução aplicada
