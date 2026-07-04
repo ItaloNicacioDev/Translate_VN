@@ -21,7 +21,7 @@ from core.translator import Translator
 
 class TranslateVN:
 
-    VERSION = "0.1.0"
+    VERSION = "0.1.3"
 
     def __init__(self):
 
