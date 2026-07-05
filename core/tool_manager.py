@@ -19,6 +19,7 @@ forma universal sem exigir passos manuais na maioria dos casos.
 """
 
 from pathlib import Path
+import os
 import subprocess
 import sys
 import urllib.request
@@ -89,6 +90,37 @@ class ToolManager:
                 return found
 
         return None
+
+    # ---------------------------------------------------
+
+    @staticmethod
+    def get_app_dir() -> Path:
+        """Pasta onde o app está rodando: pasta do .exe quando
+        congelado (PyInstaller), ou raiz do projeto em modo dev."""
+
+        if ToolManager.is_frozen():
+            return Path(sys.executable).resolve().parent
+
+        return Path(__file__).resolve().parent.parent
+
+    # ---------------------------------------------------
+
+    def bundled_unrpyc_path(self, branch: str):
+        """Procura um unrpyc já pronto pra uso, distribuído JUNTO
+        do app (compilado à parte e colocado em
+        tools/unrpyc_<branch>/), sem precisar de internet, pip ou
+        Python instalado no sistema em tempo de execução. Esse é o
+        caminho usado nas builds .exe finais."""
+
+        exe_name = (
+            f"unrpyc_{branch}.exe" if os.name == "nt" else f"unrpyc_{branch}"
+        )
+
+        candidate = (
+            self.get_app_dir() / "tools" / f"unrpyc_{branch}" / exe_name
+        )
+
+        return candidate if candidate.exists() else None
 
     # ===================================================
     # unrpa
@@ -199,16 +231,46 @@ class ToolManager:
     # ---------------------------------------------------
 
     def ensure_unrpyc(self, branch: str = "master"):
-        """Garante que o unrpyc da branch pedida está baixado e
-        cacheado localmente em tools/unrpyc_<branch>/. Retorna o
-        Path do unrpyc.py, ou None se não foi possível obter
-        (ex: sem internet no momento)."""
+        """Garante que o unrpyc da branch pedida está disponível.
+        Ordem de prioridade:
+
+        1. Executável já compilado e distribuído junto do app em
+           tools/unrpyc_<branch>/ -- não depende de internet, pip
+           ou venv. É o caminho usado nas builds .exe finais.
+        2. (Somente em modo dev, rodando via 'python main.py') um
+           script .py baixado e cacheado sob demanda do GitHub.
+
+        Numa build congelada (.exe), NUNCA tenta baixar nada da
+        internet em tempo de execução -- se o executável bundled
+        não estiver presente, falha com uma mensagem explicando
+        como distribuí-lo (veja tools/build_unrpyc.py).
+
+        Retorna o Path do unrpyc pronto pra uso (executável ou
+        script .py), ou None se não foi possível obter."""
 
         if branch not in self.UNRPYC_BRANCH_URLS:
 
             raise ValueError(
                 f"Branch de unrpyc desconhecida: {branch}"
             )
+
+        bundled = self.bundled_unrpyc_path(branch)
+
+        if bundled:
+            return bundled
+
+        if self.is_frozen():
+
+            self.logger.error(
+                f"unrpyc ({branch}) não foi encontrado em "
+                f"'tools/unrpyc_{branch}/'. Esta build compilada "
+                "não baixa nem instala nada em tempo de execução -- "
+                "gere o executável do unrpyc separadamente e "
+                "distribua a pasta 'tools' ao lado do .exe (veja "
+                "tools/build_unrpyc.py)."
+            )
+
+            return None
 
         script_path = self.unrpyc_script_path(branch)
 
