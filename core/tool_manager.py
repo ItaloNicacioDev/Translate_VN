@@ -68,12 +68,14 @@ class ToolManager:
             result = subprocess.run(
                 [sys.executable, "-m", "unrpa", "--version"],
                 capture_output=True,
-                check=False
+                check=False,
+                stdin=subprocess.DEVNULL,
+                timeout=30
             )
 
             return result.returncode == 0
 
-        except FileNotFoundError:
+        except (FileNotFoundError, subprocess.TimeoutExpired):
 
             return False
 
@@ -99,6 +101,7 @@ class ToolManager:
                 [sys.executable, "-m", "pip", "install", "unrpa"],
                 capture_output=True,
                 text=True,
+                stdin=subprocess.DEVNULL,
                 timeout=120
             )
 

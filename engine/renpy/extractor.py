@@ -142,11 +142,22 @@ class RenPyExtractor:
                 "-mp", str(output), str(rpa)
             ]
 
-        result = subprocess.run(
-            args,
-            capture_output=True,
-            text=True
-        )
+        try:
+
+            result = subprocess.run(
+                args,
+                capture_output=True,
+                text=True,
+                stdin=subprocess.DEVNULL,
+                timeout=300
+            )
+
+        except subprocess.TimeoutExpired:
+
+            raise RuntimeError(
+                f"Tempo esgotado ao extrair {rpa.name} "
+                "(mais de 5 minutos sem resposta)."
+            )
 
         if result.returncode != 0:
 
@@ -165,11 +176,22 @@ class RenPyExtractor:
 
     def _run_unrpyc(self, script_path: Path, game_folder: str):
 
-        result = subprocess.run(
-            [sys.executable, str(script_path), str(game_folder)],
-            capture_output=True,
-            text=True
-        )
+        try:
+
+            result = subprocess.run(
+                [sys.executable, str(script_path), str(game_folder)],
+                capture_output=True,
+                text=True,
+                stdin=subprocess.DEVNULL,
+                timeout=600
+            )
+
+        except subprocess.TimeoutExpired:
+
+            raise RuntimeError(
+                "Tempo esgotado ao descompilar "
+                "(mais de 10 minutos sem resposta)."
+            )
 
         if result.returncode != 0:
 
