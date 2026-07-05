@@ -201,12 +201,20 @@ class RenPyCompiler:
         lines = []
 
         lines.append(
-            f"# Tradução gerada pelo Translate VN"
+            "# Tradução gerada pelo Translate VN"
         )
         lines.append(
             f"# Arquivo de origem: {source.name}"
         )
         lines.append("")
+
+        # O Ren'Py exige que cada `old` seja único dentro do bloco
+        # translate strings — se o mesmo texto aparece em várias
+        # linhas do script, uma única entrada já cobre todas as
+        # ocorrências. Duplicatas causam o erro:
+        # 'A translation for "..." already exists'.
+        seen_originals: set[str] = set()
+        written = 0
 
         for dialogue in sorted(dialogues, key=lambda d: d.get("line", 0)):
 
@@ -216,6 +224,16 @@ class RenPyCompiler:
 
             if not original or not translated:
                 continue
+
+            # Pula se esse texto original já foi incluído antes
+            if original in seen_originals:
+                self.logger.info(
+                    f"Duplicata ignorada (linha {line_num}): "
+                    f"{original[:40]!r}"
+                )
+                continue
+
+            seen_originals.add(original)
 
             original_escaped = self._escape_renpy_string(original)
             translated_escaped = self._escape_renpy_string(translated)
@@ -234,7 +252,9 @@ class RenPyCompiler:
             )
             lines.append("")
 
-        if len(lines) <= 3:
+            written += 1
+
+        if written == 0:
             # Só o cabeçalho, nenhuma tradução real — não gera
             # arquivo vazio.
             return None
@@ -246,7 +266,7 @@ class RenPyCompiler:
 
         self.logger.info(
             f"{output_name} criado "
-            f"({len(dialogues)} entradas)."
+            f"({written} entradas únicas de {len(dialogues)} diálogos)."
         )
 
         return destination
