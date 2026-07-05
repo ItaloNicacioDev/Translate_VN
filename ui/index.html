@@ -96,6 +96,19 @@
   }
   .theme-toggle span.on{background:var(--accent-soft);color:var(--accent);}
 
+  .topbar-controls{display:flex;align-items:center;gap:10px;}
+  .lang-toggle{
+    display:flex;align-items:center;gap:2px;
+    background:var(--bg-panel);border:1px solid var(--border);
+    border-radius:100px;padding:5px;
+  }
+  .lang-opt{
+    border:none;background:transparent;color:var(--text-faint);
+    font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:600;
+    letter-spacing:.04em;padding:6px 11px;border-radius:100px;cursor:pointer;
+  }
+  .lang-opt.active{background:var(--accent-soft);color:var(--accent);}
+
   .screen{display:none;}
   .screen.active{display:block;animation:fade .3s ease;}
   @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
@@ -331,9 +344,15 @@
       <div class="brand-mark">T</div>
       <span class="brand-name">Tradutor VN</span>
     </div>
-    <div class="theme-toggle" id="themeToggle" role="button" aria-label="Alternar tema claro ou escuro">
-      <span id="iconDark">&#9789;</span>
-      <span id="iconLight">&#9728;</span>
+    <div class="topbar-controls">
+      <div class="lang-toggle" role="group" aria-label="Idioma da interface / Interface language">
+        <button class="lang-opt active" id="langOptPt" onclick="applyLanguage('pt')">PT</button>
+        <button class="lang-opt" id="langOptEn" onclick="applyLanguage('en')">EN</button>
+      </div>
+      <div class="theme-toggle" id="themeToggle" role="button" aria-label="Alternar tema claro ou escuro">
+        <span id="iconDark">&#9789;</span>
+        <span id="iconLight">&#9728;</span>
+      </div>
     </div>
   </div>
 
@@ -341,17 +360,17 @@
   <section class="screen active" id="screen-home">
     <div class="home-wrap">
       <div class="home-hero">
-        <h1>Bem-vindo(a)</h1>
-        <p>Seu estúdio de tradução de visual novels em Ren'Py.</p>
+        <h1 data-i18n="home_title">Bem-vindo(a)</h1>
+        <p data-i18n="home_subtitle">Seu estúdio de tradução de visual novels em Ren'Py.</p>
       </div>
       <div class="home-card">
-        <button class="pill-btn primary" onclick="nav('novo')">Novo projeto <span class="arrow">&rarr;</span></button>
-        <button class="pill-btn" onclick="nav('abrir')">Abrir projeto <span class="arrow">&rarr;</span></button>
-        <button class="pill-btn" onclick="nav('listar')">Listar projetos <span class="arrow">&rarr;</span></button>
-        <button class="pill-btn" onclick="nav('idiomas')">Idiomas <span class="arrow">&rarr;</span></button>
-        <button class="pill-btn" onclick="openPluginModal()">Plugins <span class="arrow" id="pluginHomeCount"></span></button>
-        <button class="pill-btn" onclick="nav('config')">Configurações <span class="arrow">&rarr;</span></button>
-        <button class="pill-btn ghost" onclick="sairApp()">SAIR</button>
+        <button class="pill-btn primary" onclick="nav('novo')"><span data-i18n="nav_new">Novo projeto</span> <span class="arrow">&rarr;</span></button>
+        <button class="pill-btn" onclick="nav('abrir')"><span data-i18n="nav_open">Abrir projeto</span> <span class="arrow">&rarr;</span></button>
+        <button class="pill-btn" onclick="nav('listar')"><span data-i18n="nav_list">Listar projetos</span> <span class="arrow">&rarr;</span></button>
+        <button class="pill-btn" onclick="nav('idiomas')"><span data-i18n="nav_langs">Idiomas</span> <span class="arrow">&rarr;</span></button>
+        <button class="pill-btn" onclick="openPluginModal()"><span data-i18n="nav_plugins">Plugins</span> <span class="arrow" id="pluginHomeCount"></span></button>
+        <button class="pill-btn" onclick="nav('config')"><span data-i18n="nav_config">Configurações</span> <span class="arrow">&rarr;</span></button>
+        <button class="pill-btn ghost" onclick="sairApp()" data-i18n="nav_exit">SAIR</button>
       </div>
     </div>
   </section>
@@ -361,24 +380,24 @@
     <div class="subpage">
       <div class="subpage-head">
         <button class="back-btn" onclick="nav('home')">&larr;</button>
-        <h2>Novo projeto</h2>
+        <h2 data-i18n="novo_title">Novo projeto</h2>
       </div>
       <div class="field-group">
-        <label class="field-label">Nome do projeto</label>
+        <label class="field-label" data-i18n="novo_name_label">Nome do projeto</label>
         <input class="field-input" id="novoNome" placeholder="Busca Llamas PT-BR">
       </div>
       <div class="field-group">
-        <label class="field-label">Pasta do jogo</label>
+        <label class="field-label" data-i18n="novo_folder_label">Pasta do jogo</label>
         <div class="field-row">
           <input class="field-input" id="novoPasta" placeholder="C:\Jogos\BuscaLlamas">
-          <button class="browse" onclick="document.getElementById('novoPastaFile').click()">Procurar</button>
+          <button class="browse" onclick="document.getElementById('novoPastaFile').click()" data-i18n="browse_btn">Procurar</button>
           <input type="file" id="novoPastaFile" webkitdirectory style="display:none" onchange="pickFolder(event,'novoPasta')">
         </div>
-        <p class="field-hint">O motor Ren'Py é detectado automaticamente ao criar o projeto.</p>
+        <p class="field-hint" data-i18n="novo_hint">O motor Ren'Py é detectado automaticamente ao criar o projeto.</p>
       </div>
       <div class="cta-row">
-        <button class="btn primary" onclick="criarProjeto()">Criar projeto</button>
-        <button class="btn" onclick="nav('home')">Cancelar</button>
+        <button class="btn primary" onclick="criarProjeto()" data-i18n="create_btn">Criar projeto</button>
+        <button class="btn" onclick="nav('home')" data-i18n="cancel_btn">Cancelar</button>
       </div>
     </div>
   </section>
@@ -388,12 +407,12 @@
     <div class="subpage">
       <div class="subpage-head">
         <button class="back-btn" onclick="nav('home')">&larr;</button>
-        <h2>Abrir projeto</h2>
+        <h2 data-i18n="abrir_title">Abrir projeto</h2>
       </div>
       <div class="field-group">
-        <label class="field-label">Buscar por nome</label>
+        <label class="field-label" data-i18n="search_label">Buscar por nome</label>
         <input class="field-input" id="abrirBusca" placeholder="Busca Llamas" oninput="renderRecentes()">
-        <p class="field-hint">Lista todos os projetos salvos em <code>projects/</code>.</p>
+        <p class="field-hint"><span data-i18n="abrir_hint">Lista todos os projetos salvos em</span> <code>projects/</code>.</p>
       </div>
       <div id="recentesList"></div>
     </div>
@@ -404,7 +423,7 @@
     <div class="subpage" style="max-width:760px;">
       <div class="subpage-head">
         <button class="back-btn" onclick="nav('home')">&larr;</button>
-        <h2>Projetos</h2>
+        <h2 data-i18n="listar_title">Projetos</h2>
       </div>
       <div class="project-grid" id="projectGrid"></div>
     </div>
@@ -415,16 +434,16 @@
     <div class="subpage">
       <div class="subpage-head">
         <button class="back-btn" onclick="nav('home')">&larr;</button>
-        <h2>Idiomas</h2>
+        <h2 data-i18n="idiomas_title">Idiomas</h2>
       </div>
-      <p class="field-label">Catálogo de idiomas disponíveis para tradução</p>
+      <p class="field-label" data-i18n="idiomas_catalog_label">Catálogo de idiomas disponíveis para tradução</p>
       <div id="langList"></div>
       <div class="add-lang">
-        <input class="field-input" id="newLangCode" placeholder="Código (ex: pt_BR)" style="max-width:150px;">
-        <input class="field-input" id="newLangName" placeholder="Nome (ex: Português (Brasil))">
-        <button class="btn primary" onclick="addLang()">Adicionar</button>
+        <input class="field-input" id="newLangCode" placeholder="Código (ex: pt_BR)" data-i18n-placeholder="lang_code_placeholder" style="max-width:150px;">
+        <input class="field-input" id="newLangName" placeholder="Nome (ex: Português (Brasil))" data-i18n-placeholder="lang_name_placeholder">
+        <button class="btn primary" onclick="addLang()" data-i18n="add_btn">Adicionar</button>
       </div>
-      <p class="field-hint">O idioma marcado como padrão é usado automaticamente em novos projetos.</p>
+      <p class="field-hint" data-i18n="idiomas_hint">O idioma marcado como padrão é usado automaticamente em novos projetos.</p>
     </div>
   </section>
 
@@ -433,29 +452,29 @@
     <div class="subpage">
       <div class="subpage-head">
         <button class="back-btn" onclick="nav('home')">&larr;</button>
-        <h2>Configurações</h2>
+        <h2 data-i18n="config_title">Configurações</h2>
       </div>
 
       <div class="settings-card">
         <div class="switch-row">
           <div>
-            <p class="row-title">Tema escuro</p>
-            <p class="row-desc">Alterna a aparência de todo o aplicativo.</p>
+            <p class="row-title" data-i18n="dark_theme_title">Tema escuro</p>
+            <p class="row-desc" data-i18n="dark_theme_desc">Alterna a aparência de todo o aplicativo.</p>
           </div>
           <div class="switch active" id="themeSwitch" onclick="toggleTheme()"><div class="knob"></div></div>
         </div>
       </div>
 
       <div class="settings-card">
-        <p class="row-title">Idioma de tradução padrão</p>
-        <p class="row-desc">Usado como destino sempre que um novo projeto é criado.</p>
+        <p class="row-title" data-i18n="default_lang_title">Idioma de tradução padrão</p>
+        <p class="row-desc" data-i18n="default_lang_desc">Usado como destino sempre que um novo projeto é criado.</p>
         <select class="field-input" id="defaultLang" onchange="setDefaultLanguage(this.value)"></select>
       </div>
 
       <div class="cta-row">
-        <button class="btn primary" onclick="salvarConfig()">Salvar configurações</button>
+        <button class="btn primary" onclick="salvarConfig()" data-i18n="save_config_btn">Salvar configurações</button>
       </div>
-      <div class="confirm-banner" id="configBanner">Configurações salvas.</div>
+      <div class="confirm-banner" id="configBanner" data-i18n="config_saved_banner">Configurações salvas.</div>
     </div>
   </section>
 
@@ -464,33 +483,33 @@
     <div class="project-shell">
       <div class="sidebar">
         <div class="sidebar-header">
-          <p class="eyebrow">Projeto</p>
+          <p class="eyebrow" data-i18n="project_eyebrow">Projeto</p>
           <h3 id="projectName">Busca Llamas</h3>
         </div>
-        <button class="side-btn" onclick="runAction('detectar', this)"><span class="dot"></span>Detectar jogo</button>
-        <button class="side-btn" onclick="runAction('extrair', this)"><span class="dot"></span>Extrair arquivos</button>
-        <button class="side-btn" onclick="runAction('ler', this)"><span class="dot"></span>Ler diálogos (indexar)</button>
-        <button class="side-btn" onclick="runAction('traduzir', this)"><span class="dot"></span>Traduzir automaticamente</button>
-        <button class="side-btn" onclick="runAction('revisar', this)"><span class="dot"></span>Revisar / editar diálogos</button>
-        <button class="side-btn" onclick="runAction('gerar', this)"><span class="dot"></span>Gerar pacote de tradução</button>
-        <button class="side-btn" onclick="runAction('aplicar', this)"><span class="dot"></span>Aplicar tradução</button>
-        <button class="side-btn danger-action" onclick="runAction('remover', this)"><span class="dot"></span>Remover tradução</button>
+        <button class="side-btn" onclick="runAction('detectar', this)"><span class="dot"></span><span data-i18n="side_detect">Detectar jogo</span></button>
+        <button class="side-btn" onclick="runAction('extrair', this)"><span class="dot"></span><span data-i18n="side_extract">Extrair arquivos</span></button>
+        <button class="side-btn" onclick="runAction('ler', this)"><span class="dot"></span><span data-i18n="side_read">Ler diálogos (indexar)</span></button>
+        <button class="side-btn" onclick="runAction('traduzir', this)"><span class="dot"></span><span data-i18n="side_translate">Traduzir automaticamente</span></button>
+        <button class="side-btn" onclick="runAction('revisar', this)"><span class="dot"></span><span data-i18n="side_review">Revisar / editar diálogos</span></button>
+        <button class="side-btn" onclick="runAction('gerar', this)"><span class="dot"></span><span data-i18n="side_generate">Gerar pacote de tradução</span></button>
+        <button class="side-btn" onclick="runAction('aplicar', this)"><span class="dot"></span><span data-i18n="side_apply">Aplicar tradução</span></button>
+        <button class="side-btn danger-action" onclick="runAction('remover', this)"><span class="dot"></span><span data-i18n="side_remove">Remover tradução</span></button>
         <div class="side-divider"></div>
-        <button class="side-btn exit" onclick="nav('home')">&larr; VOLTAR</button>
+        <button class="side-btn exit" onclick="nav('home')">&larr; <span data-i18n="back_btn">VOLTAR</span></button>
       </div>
 
       <div class="status-col">
         <div class="status-panel">
           <div class="status-panel-head">
-            <h3>Status</h3>
+            <h3 data-i18n="status_title">Status</h3>
             <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
           </div>
           <div class="vn-log" id="vnLog">
-            <p class="empty">Escolha uma ação ao lado para começar.</p>
+            <p class="empty" data-i18n="log_empty">Escolha uma ação ao lado para começar.</p>
           </div>
         </div>
         <div class="timer-chip">
-          <span class="eyebrow">Tempo até a conclusão</span>
+          <span class="eyebrow" data-i18n="timer_label">Tempo até a conclusão</span>
           <span id="timerValue">--:--</span>
         </div>
       </div>
@@ -503,17 +522,17 @@
 <div class="modal-overlay" id="pluginModal">
   <div class="modal">
     <div class="modal-head">
-      <h3>Plugins</h3>
+      <h3 data-i18n="plugins_title">Plugins</h3>
       <button class="modal-close" onclick="closePluginModal()">&times;</button>
     </div>
-    <label class="field-label">Adicionar via GitHub</label>
+    <label class="field-label" data-i18n="add_github_label">Adicionar via GitHub</label>
     <div class="plugin-source">
       <input class="field-input" id="githubUrl" placeholder="https://github.com/usuario/plugin-nome">
-      <button class="btn primary" onclick="addPluginGithub()">Adicionar</button>
+      <button class="btn primary" onclick="addPluginGithub()" data-i18n="add_btn">Adicionar</button>
     </div>
-    <label class="field-label" style="margin-top:12px;">Ou carregar do computador</label>
+    <label class="field-label" style="margin-top:12px;" data-i18n="or_local_label">Ou carregar do computador</label>
     <div class="file-drop" onclick="document.getElementById('localPlugin').click()">
-      Clique para escolher um arquivo (.zip ou .py)
+      <span data-i18n="file_drop_text">Clique para escolher um arquivo (.zip ou .py)</span>
     </div>
     <input type="file" id="localPlugin" accept=".zip,.py" style="display:none" onchange="addPluginLocal(event)">
     <div class="plugin-list" id="pluginList"></div>
@@ -525,6 +544,7 @@
   // realmente grava em cada projects/<nome>/project.json
   const state = {
     theme: 'dark',
+    uiLang: 'pt',
     plugins: [],
     currentProject: 'Busca Llamas',
     defaultLanguage: 'pt_BR',
@@ -543,9 +563,115 @@
     ]
   };
 
+  // Textos da interface (PT/EN). Não confundir com state.languages,
+  // que é o catálogo de idiomas de TRADUÇÃO DO JOGO.
+  const translations = {
+    pt: {
+      home_title:'Bem-vindo(a)', home_subtitle:"Seu estúdio de tradução de visual novels em Ren'Py.",
+      nav_new:'Novo projeto', nav_open:'Abrir projeto', nav_list:'Listar projetos', nav_langs:'Idiomas',
+      nav_plugins:'Plugins', nav_config:'Configurações', nav_exit:'SAIR',
+      novo_title:'Novo projeto', novo_name_label:'Nome do projeto', novo_folder_label:'Pasta do jogo',
+      browse_btn:'Procurar', novo_hint:"O motor Ren'Py é detectado automaticamente ao criar o projeto.",
+      create_btn:'Criar projeto', cancel_btn:'Cancelar',
+      abrir_title:'Abrir projeto', search_label:'Buscar por nome', abrir_hint:'Lista todos os projetos salvos em',
+      listar_title:'Projetos',
+      idiomas_title:'Idiomas', idiomas_catalog_label:'Catálogo de idiomas disponíveis para tradução',
+      add_btn:'Adicionar', idiomas_hint:'O idioma marcado como padrão é usado automaticamente em novos projetos.',
+      lang_code_placeholder:'Código (ex: pt_BR)', lang_name_placeholder:'Nome (ex: Português (Brasil))',
+      config_title:'Configurações', dark_theme_title:'Tema escuro', dark_theme_desc:'Alterna a aparência de todo o aplicativo.',
+      default_lang_title:'Idioma de tradução padrão', default_lang_desc:'Usado como destino sempre que um novo projeto é criado.',
+      save_config_btn:'Salvar configurações', config_saved_banner:'Configurações salvas.',
+      project_eyebrow:'Projeto', side_detect:'Detectar jogo', side_extract:'Extrair arquivos',
+      side_read:'Ler diálogos (indexar)', side_translate:'Traduzir automaticamente', side_review:'Revisar / editar diálogos',
+      side_generate:'Gerar pacote de tradução', side_apply:'Aplicar tradução', side_remove:'Remover tradução',
+      back_btn:'VOLTAR', status_title:'Status', log_empty:'Escolha uma ação ao lado para começar.',
+      timer_label:'Tempo até a conclusão', timer_done:'Concluído', system_label:'Sistema',
+      plugins_title:'Plugins', add_github_label:'Adicionar via GitHub', or_local_label:'Ou carregar do computador',
+      file_drop_text:'Clique para escolher um arquivo (.zip ou .py)', plugin_empty:'Nenhum plugin instalado ainda.',
+      plugin_source_github:'GitHub · ', plugin_source_local:'Local · computador',
+      created_on:'criado em', created_at_label:'Criado em', empty_projects:'Nenhum projeto encontrado.',
+      add_open_label:'Abrir',
+      badge_default:'Padrão', make_default_btn:'Tornar padrão',
+      alert_missing_fields:'Informe o nome do projeto e a pasta do jogo.',
+      alert_project_exists:"O projeto '{name}' já existe.",
+      alert_lang_exists:"O idioma '{code}' já está no catálogo.",
+      alert_default_lang_required:'Defina outro idioma como padrão antes de remover este.',
+      alert_goodbye:'Até a próxima sessão de tradução.',
+      actions: {
+        detectar: ["Procurando executável Ren'Py na pasta do jogo...", "Motor encontrado: Ren'Py 8.4.1.25072401.", "Jogo detectado com sucesso."],
+        extrair: ["Copiando roteiro para a área de trabalho temporária...", "142 arquivos .rpy copiados.", "Extração concluída."],
+        ler: ["Indexando falas do roteiro...", "3.482 linhas de diálogo encontradas.", "Índice pronto para tradução."],
+        traduzir: ["Protegendo aspas escapadas e tags antes de enviar...", "Traduzindo lotes para pt-br...", "Restaurando aspas e tags originais...", "Tradução automática concluída."],
+        revisar: ["Abrindo editor de diálogos...", "Aguardando revisão manual das linhas traduzidas."],
+        gerar: ["Compilando arquivos traduzidos...", "Empacotando pasta tl/pt-br...", "Pacote de tradução gerado."],
+        aplicar: ["Verificando se já existe uma tradução pt-br no jogo...", "Tradução anterior encontrada e removida.", "Copiando os novos arquivos traduzidos para o jogo...", "Tradução aplicada com sucesso."],
+        remover: ["Localizando arquivos de tradução no jogo...", "Removendo arquivos gerados pelo Tradutor VN...", "Tradução removida do jogo."]
+      }
+    },
+    en: {
+      home_title:'Welcome', home_subtitle:"Your Ren'Py visual novel translation studio.",
+      nav_new:'New project', nav_open:'Open project', nav_list:'List projects', nav_langs:'Languages',
+      nav_plugins:'Plugins', nav_config:'Settings', nav_exit:'EXIT',
+      novo_title:'New project', novo_name_label:'Project name', novo_folder_label:'Game folder',
+      browse_btn:'Browse', novo_hint:"The Ren'Py engine is detected automatically when you create the project.",
+      create_btn:'Create project', cancel_btn:'Cancel',
+      abrir_title:'Open project', search_label:'Search by name', abrir_hint:'Lists every project saved under',
+      listar_title:'Projects',
+      idiomas_title:'Languages', idiomas_catalog_label:'Catalog of languages available for translation',
+      add_btn:'Add', idiomas_hint:'The language marked as default is used automatically for new projects.',
+      lang_code_placeholder:'Code (e.g. pt_BR)', lang_name_placeholder:'Name (e.g. Português (Brasil))',
+      config_title:'Settings', dark_theme_title:'Dark theme', dark_theme_desc:"Switches the whole app's appearance.",
+      default_lang_title:'Default translation language', default_lang_desc:'Used as the target whenever a new project is created.',
+      save_config_btn:'Save settings', config_saved_banner:'Settings saved.',
+      project_eyebrow:'Project', side_detect:'Detect game', side_extract:'Extract files',
+      side_read:'Read dialogue (index)', side_translate:'Translate automatically', side_review:'Review / edit dialogue',
+      side_generate:'Generate translation package', side_apply:'Apply translation', side_remove:'Remove translation',
+      back_btn:'BACK', status_title:'Status', log_empty:'Choose an action on the left to get started.',
+      timer_label:'Time to completion', timer_done:'Done', system_label:'System',
+      plugins_title:'Plugins', add_github_label:'Add via GitHub', or_local_label:'Or load from your computer',
+      file_drop_text:'Click to choose a file (.zip or .py)', plugin_empty:'No plugins installed yet.',
+      plugin_source_github:'GitHub · ', plugin_source_local:'Local · computer',
+      created_on:'created on', created_at_label:'Created on', empty_projects:'No projects found.',
+      add_open_label:'Open',
+      badge_default:'Default', make_default_btn:'Set as default',
+      alert_missing_fields:'Enter the project name and the game folder.',
+      alert_project_exists:"Project '{name}' already exists.",
+      alert_lang_exists:"Language '{code}' is already in the catalog.",
+      alert_default_lang_required:'Set another language as default before removing this one.',
+      alert_goodbye:'See you at the next translation session.',
+      actions: {
+        detectar: ["Looking for the Ren'Py executable in the game folder...", "Engine found: Ren'Py 8.4.1.25072401.", "Game detected successfully."],
+        extrair: ["Copying the script to the temporary workspace...", "142 .rpy files copied.", "Extraction complete."],
+        ler: ["Indexing script dialogue...", "3,482 dialogue lines found.", "Index ready for translation."],
+        traduzir: ["Protecting escaped quotes and tags before sending...", "Translating batches to pt-br...", "Restoring original quotes and tags...", "Automatic translation complete."],
+        revisar: ["Opening the dialogue editor...", "Waiting for manual review of translated lines."],
+        gerar: ["Compiling translated files...", "Packaging the tl/pt-br folder...", "Translation package generated."],
+        aplicar: ["Checking whether a pt-br translation already exists in the game...", "Previous translation found and removed.", "Copying the new translated files into the game...", "Translation applied successfully."],
+        remover: ["Locating translation files in the game...", "Removing files generated by Translate VN...", "Translation removed from the game."]
+      }
+    }
+  };
+
+  function tr(key){ return translations[state.uiLang][key] || key; }
+
+  function applyLanguage(lang){
+    state.uiLang = lang;
+    document.documentElement.lang = lang === 'pt' ? 'pt-BR' : 'en';
+    document.getElementById('langOptPt').classList.toggle('active', lang==='pt');
+    document.getElementById('langOptEn').classList.toggle('active', lang==='en');
+    document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = tr(el.getAttribute('data-i18n')); });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = tr(el.getAttribute('data-i18n-placeholder')); });
+    const emptyLog = document.querySelector('#vnLog .empty');
+    if(emptyLog) emptyLog.textContent = tr('log_empty');
+    if(document.getElementById('screen-abrir').classList.contains('active')) renderRecentes();
+    if(document.getElementById('screen-listar').classList.contains('active')) renderProjects();
+    if(document.getElementById('screen-idiomas').classList.contains('active')) renderLangs();
+    if(document.getElementById('pluginModal').classList.contains('show')) renderPlugins();
+  }
+
   function formatDate(iso){
     const d = new Date(iso);
-    return d.toLocaleDateString('pt-BR');
+    return d.toLocaleDateString(state.uiLang === 'pt' ? 'pt-BR' : 'en-US');
   }
   function langName(code){
     const found = state.languages.find(l => l.code === code);
@@ -562,17 +688,16 @@
   }
 
   function sairApp(){
-    const log = document.getElementById('vnLog');
-    alert('Até a próxima sessão de tradução.');
+    alert(tr('alert_goodbye'));
   }
 
   // ---------- THEME ----------
-  function setTheme(t){
-    state.theme = t;
-    document.documentElement.setAttribute('data-theme', t);
-    document.getElementById('iconDark').classList.toggle('on', t==='dark');
-    document.getElementById('iconLight').classList.toggle('on', t==='light');
-    document.getElementById('themeSwitch').classList.toggle('active', t==='dark');
+  function setTheme(mode){
+    state.theme = mode;
+    document.documentElement.setAttribute('data-theme', mode);
+    document.getElementById('iconDark').classList.toggle('on', mode==='dark');
+    document.getElementById('iconLight').classList.toggle('on', mode==='light');
+    document.getElementById('themeSwitch').classList.toggle('active', mode==='dark');
   }
   function toggleTheme(){ setTheme(state.theme==='dark' ? 'light' : 'dark'); }
   document.getElementById('themeToggle').addEventListener('click', toggleTheme);
@@ -598,11 +723,11 @@
     const nome = document.getElementById('novoNome').value.trim();
     const pasta = document.getElementById('novoPasta').value.trim();
     if(!nome || !pasta){
-      alert('Informe o nome do projeto e a pasta do jogo.');
+      alert(tr('alert_missing_fields'));
       return;
     }
     if(state.projects.some(p => p.name === nome)){
-      alert(`O projeto '${nome}' já existe.`);
+      alert(tr('alert_project_exists').replace('{name}', nome));
       return;
     }
     // Espelha ProjectManager.create(): engine/versão vêm do detector,
@@ -628,9 +753,9 @@
     const lista = state.projects.filter(p => p.name.toLowerCase().includes(busca));
     wrap.innerHTML = lista.length ? lista.map(p => `
       <div class="list-row">
-        <div class="meta"><strong>${p.name}</strong><span>${p.engine} · criado em ${formatDate(p.created_at)}</span></div>
-        <button class="btn" onclick="abrirExistente('${p.name}')">Abrir</button>
-      </div>`).join('') : '<p class="plugin-empty">Nenhum projeto encontrado.</p>';
+        <div class="meta"><strong>${p.name}</strong><span>${p.engine} · ${tr('created_on')} ${formatDate(p.created_at)}</span></div>
+        <button class="btn" onclick="abrirExistente('${p.name}')">${tr('add_open_label')}</button>
+      </div>`).join('') : `<p class="plugin-empty">${tr('empty_projects')}</p>`;
   }
   function renderProjects(){
     const wrap = document.getElementById('projectGrid');
@@ -638,10 +763,10 @@
       <div class="project-card">
         <h3>${p.name}</h3>
         <p>${p.engine} · v${p.version}</p>
-        <span class="badge wip">${langName(p.language_original) || 'origem não definida'} &rarr; ${langName(p.language_translation)}</span>
-        <p style="margin-top:10px;">Criado em ${formatDate(p.created_at)}</p>
-        <div style="margin-top:12px;"><button class="btn primary" onclick="abrirExistente('${p.name}')">Abrir</button></div>
-      </div>`).join('') : '<p class="plugin-empty">Nenhum projeto encontrado.</p>';
+        <span class="badge wip">${langName(p.language_original) || '—'} &rarr; ${langName(p.language_translation)}</span>
+        <p style="margin-top:10px;">${tr('created_at_label')} ${formatDate(p.created_at)}</p>
+        <div style="margin-top:12px;"><button class="btn primary" onclick="abrirExistente('${p.name}')">${tr('add_open_label')}</button></div>
+      </div>`).join('') : `<p class="plugin-empty">${tr('empty_projects')}</p>`;
   }
   function abrirExistente(nome){
     state.currentProject = nome;
@@ -657,9 +782,9 @@
       <div class="lang-row">
         <span>${l.name} <span class="flag">${l.code}</span></span>
         ${l.code === state.defaultLanguage
-          ? '<span class="badge ok">Padrão</span>'
+          ? `<span class="badge ok">${tr('badge_default')}</span>`
           : `<div style="display:flex;gap:8px;">
-               <button class="btn" onclick="setDefaultLanguage('${l.code}')">Tornar padrão</button>
+               <button class="btn" onclick="setDefaultLanguage('${l.code}')">${tr('make_default_btn')}</button>
                <button class="plugin-remove" onclick="removeLang('${l.code}')">&times;</button>
              </div>`}
       </div>`).join('');
@@ -671,7 +796,7 @@
     const name = nameInput.value.trim();
     if(!code || !name) return;
     if(state.languages.some(l => l.code === code)){
-      alert(`O idioma '${code}' já está no catálogo.`);
+      alert(tr('alert_lang_exists').replace('{code}', code));
       return;
     }
     state.languages.push({code, name});
@@ -682,7 +807,7 @@
   }
   function removeLang(code){
     if(code === state.defaultLanguage){
-      alert('Defina outro idioma como padrão antes de remover este.');
+      alert(tr('alert_default_lang_required'));
       return;
     }
     state.languages = state.languages.filter(l => l.code !== code);
@@ -717,46 +842,31 @@
     if(homeCount) homeCount.textContent = state.plugins.length ? `(${state.plugins.length})` : '\u2192';
     wrap.innerHTML = state.plugins.length ? state.plugins.map((p,i) => `
       <div class="plugin-item">
-        <div><strong>${p.name}</strong><br><span>${p.source}</span></div>
+        <div><strong>${p.name}</strong><br><span>${p.sourceType==='github' ? tr('plugin_source_github')+p.detail : tr('plugin_source_local')}</span></div>
         <button class="plugin-remove" onclick="removePlugin(${i})">&times;</button>
-      </div>`).join('') : '<p class="plugin-empty">Nenhum plugin instalado ainda.</p>';
+      </div>`).join('') : `<p class="plugin-empty">${tr('plugin_empty')}</p>`;
   }
   function addPluginGithub(){
     const input = document.getElementById('githubUrl');
     const url = input.value.trim();
     if(!url) return;
     const name = url.replace(/\/$/, '').split('/').pop() || 'plugin-github';
-    state.plugins.push({name, source:'GitHub · '+url});
+    state.plugins.push({name, sourceType:'github', detail:url});
     input.value = '';
     renderPlugins();
   }
   function addPluginLocal(ev){
     const file = ev.target.files[0];
     if(!file) return;
-    state.plugins.push({name:file.name, source:'Local · computador'});
+    state.plugins.push({name:file.name, sourceType:'local', detail:''});
     renderPlugins();
   }
   function removePlugin(i){ state.plugins.splice(i,1); renderPlugins(); }
 
   // ---------- PROJECT ACTIONS (VN-style status log) ----------
-  const actionScripts = {
-    detectar: ["Procurando executável Ren'Py na pasta do jogo...", "Motor encontrado: Ren'Py 8.4.1.25072401.", "Jogo detectado com sucesso."],
-    extrair: ["Copiando roteiro para a área de trabalho temporária...", "142 arquivos .rpy copiados.", "Extração concluída."],
-    ler: ["Indexando falas do roteiro...", "3.482 linhas de diálogo encontradas.", "Índice pronto para tradução."],
-    traduzir: ["Protegendo aspas escapadas e tags antes de enviar...", "Traduzindo lotes para pt-br...", "Restaurando aspas e tags originais...", "Tradução automática concluída."],
-    revisar: ["Abrindo editor de diálogos...", "Aguardando revisão manual das linhas traduzidas."],
-    gerar: ["Compilando arquivos traduzidos...", "Empacotando pasta tl/pt-br...", "Pacote de tradução gerado."],
-    aplicar: ["Verificando se já existe uma tradução pt-br no jogo...", "Tradução anterior encontrada e removida.", "Copiando os novos arquivos traduzidos para o jogo...", "Tradução aplicada com sucesso."],
-    remover: ["Localizando arquivos de tradução no jogo...", "Removendo arquivos gerados pelo Tradutor VN...", "Tradução removida do jogo."]
-  };
-  const actionLabels = {
-    detectar:'Detectar jogo', extrair:'Extrair arquivos', ler:'Ler diálogos', traduzir:'Traduzir automaticamente',
-    revisar:'Revisar diálogos', gerar:'Gerar pacote', aplicar:'Aplicar tradução', remover:'Remover tradução'
-  };
-
   let running = false;
   function resetStatusPanel(){
-    document.getElementById('vnLog').innerHTML = '<p class="empty">Escolha uma ação ao lado para começar.</p>';
+    document.getElementById('vnLog').innerHTML = `<p class="empty">${tr('log_empty')}</p>`;
     document.getElementById('progressFill').style.width = '0%';
     document.getElementById('timerValue').textContent = '--:--';
     document.querySelectorAll('.side-btn').forEach(b=>b.classList.remove('active'));
@@ -772,7 +882,7 @@
     log.innerHTML = '';
     const fill = document.getElementById('progressFill');
     fill.style.width = '0%';
-    const lines = actionScripts[key];
+    const lines = translations[state.uiLang].actions[key];
     let secondsLeft = lines.length * 2 + 2;
     updateTimer(secondsLeft);
     const timerInterval = setInterval(()=>{
@@ -793,25 +903,26 @@
   function updateTimer(s){
     const m = Math.floor(s/60).toString().padStart(2,'0');
     const sec = (s%60).toString().padStart(2,'0');
-    document.getElementById('timerValue').textContent = s>0 ? `${m}:${sec}` : 'Concluído';
+    document.getElementById('timerValue').textContent = s>0 ? `${m}:${sec}` : tr('timer_done');
   }
 
   function typeLine(log, text){
     return new Promise(resolve=>{
       const p = document.createElement('p');
       p.className = 'line';
-      p.innerHTML = '<span class="who">Sistema&gt;</span> ';
+      const who = tr('system_label');
+      p.innerHTML = `<span class="who">${who}&gt;</span> `;
       log.appendChild(p);
       log.scrollTop = log.scrollHeight;
       let i = 0;
       const speed = 12;
       const timer = setInterval(()=>{
-        p.innerHTML = '<span class="who">Sistema&gt;</span> ' + text.slice(0,i) + '<span class="caret">&nbsp;</span>';
+        p.innerHTML = `<span class="who">${who}&gt;</span> ` + text.slice(0,i) + '<span class="caret">&nbsp;</span>';
         log.scrollTop = log.scrollHeight;
         i++;
         if(i > text.length){
           clearInterval(timer);
-          p.innerHTML = '<span class="who">Sistema&gt;</span> ' + text;
+          p.innerHTML = `<span class="who">${who}&gt;</span> ` + text;
           resolve();
         }
       }, speed);
