@@ -55,6 +55,42 @@ class ToolManager:
         )
 
     # ===================================================
+    # Detecção de interpretador Python real
+    # ===================================================
+
+    @staticmethod
+    def is_frozen() -> bool:
+        """True quando rodando como build congelado (PyInstaller
+        etc). Nesse caso, sys.executable aponta para o próprio
+        .exe do app, e NÃO para um interpretador Python de verdade
+        -- então não pode ser usado para rodar 'pip', 'unrpa' ou
+        scripts .py como o unrpyc."""
+
+        return bool(getattr(sys, "frozen", False))
+
+    # ---------------------------------------------------
+
+    @classmethod
+    def get_python_executable(cls):
+        """Retorna o caminho de um interpretador Python de verdade
+        utilizável em subprocess. Quando rodando via 'python main.py'
+        normalmente, isso é apenas sys.executable. Quando rodando
+        como build congelado, sys.executable é o próprio app, então
+        procuramos um Python instalado no sistema (no PATH)."""
+
+        if not cls.is_frozen():
+            return sys.executable
+
+        for candidate in ("python", "python3", "py"):
+
+            found = shutil.which(candidate)
+
+            if found:
+                return found
+
+        return None
+
+    # ===================================================
     # unrpa
     # ===================================================
 
@@ -63,10 +99,15 @@ class ToolManager:
         if shutil.which("unrpa"):
             return True
 
+        python_executable = self.get_python_executable()
+
+        if not python_executable:
+            return False
+
         try:
 
             result = subprocess.run(
-                [sys.executable, "-m", "unrpa", "--version"],
+                [python_executable, "-m", "unrpa", "--version"],
                 capture_output=True,
                 check=False,
                 stdin=subprocess.DEVNULL,
@@ -90,6 +131,21 @@ class ToolManager:
         if self.is_unrpa_available():
             return True
 
+        python_executable = self.get_python_executable()
+
+        if not python_executable:
+
+            self.logger.error(
+                "Não foi possível instalar 'unrpa' automaticamente "
+                "porque esta é uma build compilada (.exe) e nenhum "
+                "Python foi encontrado no sistema (PATH). Instale "
+                "Python e rode 'pip install unrpa' manualmente, ou "
+                "instale 'unrpa' e garanta que ele fique acessível "
+                "no PATH."
+            )
+
+            return False
+
         self.logger.info(
             "'unrpa' não encontrado. Instalando automaticamente "
             "via pip..."
@@ -98,7 +154,7 @@ class ToolManager:
         try:
 
             result = subprocess.run(
-                [sys.executable, "-m", "pip", "install", "unrpa"],
+                [python_executable, "-m", "pip", "install", "unrpa"],
                 capture_output=True,
                 text=True,
                 stdin=subprocess.DEVNULL,

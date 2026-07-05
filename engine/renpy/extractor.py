@@ -137,8 +137,19 @@ class RenPyExtractor:
 
         else:
 
+            python_executable = ToolManager.get_python_executable()
+
+            if not python_executable:
+
+                raise RuntimeError(
+                    "Não foi possível encontrar 'unrpa' nem um "
+                    "interpretador Python de verdade para rodá-lo "
+                    "(esta é uma build compilada). Instale Python e "
+                    "rode 'pip install unrpa' manualmente."
+                )
+
             args = [
-                sys.executable, "-m", "unrpa",
+                python_executable, "-m", "unrpa",
                 "-mp", str(output), str(rpa)
             ]
 
@@ -176,10 +187,21 @@ class RenPyExtractor:
 
     def _run_unrpyc(self, script_path: Path, game_folder: str):
 
+        python_executable = ToolManager.get_python_executable()
+
+        if not python_executable:
+
+            raise RuntimeError(
+                "Não foi possível descompilar: nenhum interpretador "
+                "Python de verdade foi encontrado no sistema (esta é "
+                "uma build compilada). Instale Python e garanta que "
+                "ele fique acessível no PATH."
+            )
+
         try:
 
             result = subprocess.run(
-                [sys.executable, str(script_path), str(game_folder)],
+                [python_executable, str(script_path), str(game_folder)],
                 capture_output=True,
                 text=True,
                 stdin=subprocess.DEVNULL,
