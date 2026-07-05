@@ -1,0 +1,330 @@
+[17:06:26] INFO | Jogo Ren'Py detectado.
+[17:06:26] INFO | 0 scripts encontrados.
+[17:06:26] INFO | 59 scripts compilados.
+[17:06:26] INFO | 1 arquivos RPA encontrados.
+[17:06:27] INFO | Projeto 'fsdfgsdf' criado.
+[17:06:34] INFO | Jogo Ren'Py detectado.
+[17:06:34] INFO | 0 scripts encontrados.
+[17:06:34] INFO | 59 scripts compilados.
+[17:06:34] INFO | 1 arquivos RPA encontrados.
+[17:06:34] INFO | 0 scripts .rpy copiados.
+[17:06:34] INFO | Extraindo archive.rpa
+[17:06:35] INFO | Extração concluída.
+[17:06:37] INFO | Descompilado com sucesso usando unrpyc (master).
+[17:06:38] INFO | 28 script(s) ignorados por estarem dentro de uma pasta de tradução já existente do jogo (game/tl/...).
+[17:06:38] INFO | 31 scripts .rpy copiados.
+[17:06:38] INFO | Processo de extração finalizado.
+[17:06:54] INFO | 14304 diálogos encontrados.
+[17:06:58] INFO | Idioma de destino alterado para pt
+[17:06:58] INFO | Traduzindo 13573 texto(s) (5 em paralelo)...
+[17:07:00] DEBUG | Traduzido: #f06d16
+[17:07:00] DEBUG | Traduzido: ¡El quinto aniversario está a punto de e
+[17:07:00] DEBUG | Traduzido: #999999
+[17:07:00] DEBUG | Traduzido: #992eb4
+[17:07:00] DEBUG | Traduzido: Gracias a todos los que han estado apoya
+[17:07:01] DEBUG | Traduzido: He creado este capítulo para vosotros, p
+[17:07:01] DEBUG | Traduzido: El sonido de los aviones, el sol calenta
+[17:07:01] DEBUG | Traduzido: Tanto yo (el autor) como el traductor al
+[17:07:01] DEBUG | Traduzido: Respira hondo el olor de la ciudad.
+[17:07:01] DEBUG | Traduzido: Alguien ha llegado, uno que no ha venido
+[17:07:01] DEBUG | Traduzido: \"Aaaah, cuánto tiempo.\"
+[17:07:02] DEBUG | Traduzido: \"¿Cuánto exactamente?\"
+[17:07:02] DEBUG | Traduzido: Su compañero deja el móvil a un lado y l
+[17:07:02] DEBUG | Traduzido: \"Mmm...\"
+[17:07:02] DEBUG | Traduzido: Empieza a contar con las manos.
+[17:07:02] DEBUG | Traduzido: \"¿Tres años desde el último preguntas y
+[17:07:03] DEBUG | Traduzido: \"¿A dónde fuiste?\"
+[17:07:03] DEBUG | Traduzido: \"No quieres saberlo.\"
+[17:07:03] DEBUG | Traduzido: Se acercan a un taxi y piden que los lle
+[17:07:03] DEBUG | Traduzido: Guardan el equipaje en el maletero y se 
+[17:07:03] DEBUG | Traduzido: Las vistas de la ciudad desde el aeropue
+[17:07:03] DEBUG | Traduzido: \"Hola de nuevo, Sunima.\"
+[17:07:04] DEBUG | Traduzido: \"Mmm... Aún no estoy convencido del nom
+[17:07:04] DEBUG | Traduzido: \"Deberías cambiarlo.\"
+[17:07:04] DEBUG | Traduzido: \"Pues da ideas. Crear nombres de ciudad
+[17:07:04] DEBUG | Traduzido: Alex deja de mirar por la ventanilla.
+[17:07:04] DEBUG | Traduzido: \"A todo esto, ¿por qué me has traído?\"
+[17:07:05] DEBUG | Traduzido: \"Pensaba que te gustaría visitar la ciu
+[17:07:05] DEBUG | Traduzido: Le mira sorprendido, no es lo que tenía 
+[17:07:05] DEBUG | Traduzido: \"Estoy interesado, pero no veo la utili
+[17:07:05] DEBUG | Traduzido: \"¿Un día?\"
+[17:07:05] DEBUG | Traduzido: \"No me digas que...\"
+[17:07:05] DEBUG | Traduzido: \"Pues me quedo en silencio.\"
+[17:07:06] DEBUG | Traduzido: \"¡Ni se te ocurra! Hay que hablar de la
+[17:07:06] DEBUG | Traduzido: \"Oooh, cierto, cierto.\"
+[17:07:06] DEBUG | Traduzido: Saca el móvil y abre una aplicación.
+[17:07:06] DEBUG | Traduzido: \"Las tengo aquí escritas.\"
+[17:07:06] DEBUG | Traduzido: \"¿No las vas a imprimir?\"
+[17:07:06] DEBUG | Traduzido: \"¿Has mirado la batería?\"
+[17:07:07] DEBUG | Traduzido: \"¿Para qué? Menudo malgasto de papel.\"
+[17:07:07] DEBUG | Traduzido: \"Idiota... Menos mal que vengo preparad
+[17:07:07] DEBUG | Traduzido: Abre los ojos de par en par. Un escalofr
+[17:07:07] DEBUG | Traduzido: Le entrega una batería portátil y lo enc
+[17:07:07] DEBUG | Traduzido: \"Muchas gracias, amigo.\"
+[17:07:07] DEBUG | Traduzido: Suelta entre lágrimas, intentando darle 
+[17:07:07] DEBUG | Traduzido: \"¡No, no, no! ¡Ni te me acerques! Me va
+[17:07:08] DEBUG | Traduzido: Le pone las manos en la mejilla y pecho,
+[17:07:08] DEBUG | Traduzido: El viaje es largo, pues la dirección que
+[17:07:08] DEBUG | Traduzido: El clima es agradable, el frío de la ciu
+[17:07:08] DEBUG | Traduzido: Media hora más tarde, llegan al barrio. 
+[17:07:08] DEBUG | Traduzido: Pedro mete la mano en su bolsillo y saca
+[17:07:09] DEBUG | Traduzido: \"Quédese con el cambio.\"
+[17:07:09] DEBUG | Traduzido: Ambos salen del coche, agarran su equipa
+[17:07:09] DEBUG | Traduzido: \"Creía que no tenías dinero.\"
+[17:07:09] DEBUG | Traduzido: \"Pueeede que lo tomara prestado de tu b
+[17:07:09] DEBUG | Traduzido: \"¡¿Qué?!\"
+[17:07:10] DEBUG | Traduzido: \"T-T-Te lo devolveré, lo juro.\"
+[17:07:10] DEBUG | Traduzido: Con el tema zanjado, clavan su mirada al
+[17:07:10] DEBUG | Traduzido: \"Esto no es el hotel.\"
+[17:07:10] DEBUG | Traduzido: \"¿Y el equipaje?\"
+[17:07:10] DEBUG | Traduzido: \"Lo sé. Venimos a trabajar.\"
+[17:07:10] DEBUG | Traduzido: \"¿De qué hablas?\"
+[17:07:11] DEBUG | Traduzido: Escribe rápidamente algo en su móvil y s
+[17:07:11] DEBUG | Traduzido: \"Lo pillo, magia de escritor.\"
+[17:07:11] DEBUG | Traduzido: \"Es mi mundo y aquí dentro haremos lo q
+[17:07:11] DEBUG | Traduzido: \"¿Entonces vamos a ver a Tiger?\"
+[17:07:11] DEBUG | Traduzido: Alex entrecierra los ojos, dudoso de su 
+[17:07:11] DEBUG | Traduzido: \"¿A qué te refieres?\"
+[17:07:12] DEBUG | Traduzido: \"Espera y verás.\"
+[17:07:12] DEBUG | Traduzido: \"Sí y no.\"
+[17:07:12] DEBUG | Traduzido: \"Ahí está.\"
+[17:07:12] DEBUG | Traduzido: Se apoyan en una pared y esperan por uno
+[17:07:12] DEBUG | Traduzido: Un tigre sale del gimnasio, mirando el m
+[17:07:13] DEBUG | Traduzido: \"Vamos a preguntarle.\"
+[17:07:13] DEBUG | Traduzido: \"¡Voy yo!\"
+[17:07:13] DEBUG | Traduzido: Pedro se acerca sonriendo al tigre, sin 
+[17:07:13] DEBUG | Traduzido: \"¡Ey, Tiger!\"
+[17:07:13] DEBUG | Traduzido: \"¿Eh?\"
+[17:07:14] DEBUG | Traduzido: Se da la vuelta lentamente. Sus ojos pas
+[17:07:14] DEBUG | Traduzido: Al fijarse en Pedro, el miedo lo invade.
+[17:07:14] DEBUG | Traduzido: \"No te acerques a mí.\"
+[17:07:14] DEBUG | Traduzido: \"¿Correo? Espera, eso significa que...\
+[17:07:14] DEBUG | Traduzido: \"¿No os llegó el correo? Avisé con ante
+[17:07:14] DEBUG | Traduzido: Pedro asiente sin parar con la cabeza, s
+[17:07:15] DEBUG | Traduzido: \"Mierda... Mierda, mierda, mierda...\"
+[17:07:15] DEBUG | Traduzido: Pero nada ocurre, solo el tigre huyendo 
+[17:07:15] DEBUG | Traduzido: \"¡Alex, atrápalo!\"
+[17:07:15] DEBUG | Traduzido: Susurra con fuerza. Alex se mantiene ale
+[17:07:15] DEBUG | Traduzido: \"¿Atraparlo? Estarás de coña. ¿Te crees
+[17:07:15] DEBUG | Traduzido: A lo lejos ve el restaurante de Presodal
+[17:07:15] DEBUG | Traduzido: Mientras tanto, el tigre corre sin parar
+[17:07:16] DEBUG | Traduzido: \"Jejeje sí, perdona. Me dejé llevar por
+[17:07:16] DEBUG | Traduzido: Entra, cierra y se posa en la puerta par
+[17:07:16] DEBUG | Traduzido: \"¡Presodal! Código P.\"
+[17:07:16] DEBUG | Traduzido: \"No es un simulacro. ¡Código P!\"
+[17:07:16] DEBUG | Traduzido: Aprieta un botón bajo la barra. Muros de
+[17:07:16] DEBUG | Traduzido: \"Dime que es una broma.\"
+[17:07:17] DEBUG | Traduzido: \"¡Mierda! Activando defensas.\"
+[17:07:17] DEBUG | Traduzido: \"¿Han mejorado la seguridad? Ya era hor
+[17:07:17] DEBUG | Traduzido: \"Le supliqué a mi jefe que lo hiciera, 
+[17:07:17] DEBUG | Traduzido: Lucas no habla, se queda quieto como si 
+[17:07:17] DEBUG | Traduzido: Alguien golpea el muro de hierro como si
+[17:07:17] DEBUG | Traduzido: \"Uuf, menos mal. No quiero sufrir otro 
+[17:07:18] DEBUG | Traduzido: De repente, el muro recibe un golpe tan 
+[17:07:18] DEBUG | Traduzido: Tiger salta la barra y ambos tigres se a
+[17:07:18] DEBUG | Traduzido: \"¡Alex, pon más fuerza!\"
+[17:07:18] DEBUG | Traduzido: \"¡Te estoy usando como ariete! Nunca pe
+[17:07:18] DEBUG | Traduzido: \"¡Me da igual! Tenemos trabajo y no pie
+[17:07:19] DEBUG | Traduzido: \"Al menos llama de nuevo, los he escuch
+[17:07:19] DEBUG | Traduzido: Otro golpe. No responden. Un minuto de s
+[17:07:19] DEBUG | Traduzido: \"Chicos, respeto vuestra privacidad, pe
+[17:07:19] DEBUG | Traduzido: El muro cae ante el ariete de carne. Ale
+[17:07:19] DEBUG | Traduzido: \"¿Es esto el parque acuático?\"
+[17:07:20] DEBUG | Traduzido: \"¿Qué? No.\"
+[17:07:20] DEBUG | Traduzido: Se levanta y golpea sus mejillas, justo 
+[17:07:20] DEBUG | Traduzido: \"No nos hagas más preguntas.\"
+[17:07:20] DEBUG | Traduzido: \"Déjanos marchar.\"
+[17:07:20] DEBUG | Traduzido: Lo deja caer. Se pone delante de la barr
+[17:07:20] DEBUG | Traduzido: Lucas saluda con la mano mientras bebe s
+[17:07:21] DEBUG | Traduzido: \"¿Qué onda, Lucas? ¿Viste el correo?\"
+[17:07:21] DEBUG | Traduzido: \"¿Qué hizo?\"
+[17:07:21] DEBUG | Traduzido: Asiente con la cabeza.
+[17:07:21] DEBUG | Traduzido: \"¿Y no los avisas?\"
+[17:07:21] DEBUG | Traduzido: \"¡No es importante! Llama a los demás y
+[17:07:21] DEBUG | Traduzido: Le entrega una lista.
+[17:07:22] DEBUG | Traduzido: \"Eh, bueno... Es el quinto de la novela
+[17:07:22] DEBUG | Traduzido: Los tigres se quedan mirando con cara de
+[17:07:22] DEBUG | Traduzido: \"Suficiente. No tenemos muchas pregunta
+[17:07:22] DEBUG | Traduzido: \"¿Quieres decir que ahora nos ven?\"
+[17:07:22] DEBUG | Traduzido: \"¡¿Un extraño me ha visto desnudo?!\"
+[17:07:22] DEBUG | Traduzido: \"A ti no te han visto, no hay imagen de
+[17:07:23] DEBUG | Traduzido: Lucas suspira de alivio.
+[17:07:23] DEBUG | Traduzido: \"Os lo explicaré todo más tarde.\"
+[17:07:23] DEBUG | Traduzido: Su compañero se acerca a él y le susurra
+[17:07:23] DEBUG | Traduzido: \"Saben que están en una novela, ¿pero n
+[17:07:23] DEBUG | Traduzido: \"Llevo años sin verlos, no puedo decírs
+[17:07:24] DEBUG | Traduzido: \"Eres...\"
+[17:07:24] DEBUG | Traduzido: No tiene más remedio que soportarlo.
+[17:07:24] DEBUG | Traduzido: \"Lo haremos todo aquí mismo. ¡Yo pago l
+[17:07:24] DEBUG | Traduzido: Los tigres asienten al unísono.
+[17:07:24] DEBUG | Traduzido: \"Como sea... ¡Que empiecen las pregunta
+[17:07:24] DEBUG | Traduzido: Media hora más tarde...
+[17:07:24] DEBUG | Traduzido: \"Bien, ¿está la cámara grabando?\"
+[17:07:25] DEBUG | Traduzido: \"Quería sonar importante.\"
+[17:07:25] DEBUG | Traduzido: \"No te hagas el tonto, ponte serio.\"
+[17:07:25] DEBUG | Traduzido: \"¿Qué cámara?\"
+[17:07:25] DEBUG | Traduzido: Todas las personas que reciben una pregu
+[17:07:25] DEBUG | Traduzido: Muy bien, es el momento de volver a los 
+[17:07:25] DEBUG | Traduzido: Deshace las arrugas de su camiseta y se 
+[17:07:26] DEBUG | Traduzido: Listo para empezar, se pone al lado de A
+[17:07:26] DEBUG | Traduzido: Tú, querido lector, eres espectador en t
+[17:07:26] DEBUG | Traduzido: \"Bienvenidos al especial de preguntas y
+[17:07:26] DEBUG | Traduzido: \"Estoy agradecido por todo lo bueno que
+[17:07:26] DEBUG | Traduzido: \"Por eso he arrastra... quiero decir, t
+[17:07:26] DEBUG | Traduzido: \"También un miembro muy importante del 
+[17:07:26] DEBUG | Traduzido: \"Muchas cosas han pasado en estos cinco
+[17:07:27] DEBUG | Traduzido: Una sonrisa se dibuja en su rostro al se
+[17:07:27] DEBUG | Traduzido: \"Hoy hemos traído a todo el mundo que h
+[17:07:27] DEBUG | Traduzido: Aunque lo dudo.
+[17:07:27] DEBUG | Traduzido: \"Tenemos pocas preguntas y muchas respu
+[17:07:27] DEBUG | Traduzido: \"¿Empezamos conmigo? Qué raro. Mi princ
+[17:07:28] DEBUG | Traduzido: \"Había un dibujo en específico que me l
+[17:07:28] DEBUG | Traduzido: \"Oh, ah... Me gustan mucho, hoy en día 
+[17:07:28] DEBUG | Traduzido: \"Sí, todavía leo Extracurricular Activi
+[17:07:28] DEBUG | Traduzido: \"Oh, dios... Diría que empezara haciend
+[17:07:28] DEBUG | Traduzido: \"Y dado que la lista es corta, mi favor
+[17:07:29] DEBUG | Traduzido: \"Yo los colecciono, por si quieres que 
+[17:07:29] DEBUG | Traduzido: \"No, no, no, son colección, no se puede
+[17:07:29] DEBUG | Traduzido: \"Te invito un día y jugamos algo juntos
+[17:07:29] DEBUG | Traduzido: \"Eh, entonces... Acepto.\"
+[17:07:29] DEBUG | Traduzido: El recién nombrado asiente.
+[17:07:29] DEBUG | Traduzido: \"Tengo muchas recetas en mente, pero si
+[17:07:30] DEBUG | Traduzido: \"Juega bien tus cartas y puede que sí.\
+[17:07:30] DEBUG | Traduzido: \"Por eso podréis decidir qué posición q
+[17:07:30] DEBUG | Traduzido: \"Lo tenía pensado hace tiempo, sí. Quie
+[17:07:30] DEBUG | Traduzido: Lucas le mira subiendo y bajando las cej
+[17:07:30] DEBUG | Traduzido: \"Espera, ¿qué?\"
+[17:07:31] DEBUG | Traduzido: \"¡Vamoooooooos!\"
+[17:07:31] DEBUG | Traduzido: Puedo notar las voces de todos los fans 
+[17:07:31] DEBUG | Traduzido: \"Eh... ¿Obvio? ¿Para qué hago la ruta d
+[17:07:31] DEBUG | Traduzido: \"¿Volveré con fuerza para darlo todo?\"
+[17:07:31] DEBUG | Traduzido: \"Lo tengo bastante avanzado en tema de 
+[17:07:31] DEBUG | Traduzido: \"Relaja las escamas. No te los vas a ti
+[17:07:31] DEBUG | Traduzido: \"¿Por quién me tomas?\"
+[17:07:32] DEBUG | Traduzido: Pedro mira a otro lado, queriendo olvida
+[17:07:32] DEBUG | Traduzido: \"Podría considerar meter a Buld. De hec
+[17:07:32] DEBUG | Traduzido: \"Buld no es una mala opción, le daré un
+[17:07:32] DEBUG | Traduzido: \"¿Vas a ser así de malo conmigo?\"
+[17:07:32] DEBUG | Traduzido: \"La siguiente pregunta es... ¿Cuánto le
+[17:07:32] DEBUG | Traduzido: \"Apenas has tenido impacto en la novela
+[17:07:33] DEBUG | Traduzido: Se pega a él para leer su pantalla. En e
+[17:07:33] DEBUG | Traduzido: \"Bueno, no podemos dejarlo colgado, ¿no
+[17:07:33] DEBUG | Traduzido: Saca una cinta métrica, listo para empez
+[17:07:33] DEBUG | Traduzido: \"Así es, jefe.\"
+[17:07:33] DEBUG | Traduzido: \"Muy bien, vosotros cuatro, entren al b
+[17:07:34] DEBUG | Traduzido: \"¡No me toques!\"
+[17:07:34] DEBUG | Traduzido: \"Mierda, allá vamos...\"
+[17:07:34] DEBUG | Traduzido: \"¡Oh, sí, nene! Hora de enseñar el mate
+[17:07:34] DEBUG | Traduzido: Unos minutos más tarde...
+[17:07:34] DEBUG | Traduzido: \"¿Eh? ¿Qué? ¿Por qué?\"
+[17:07:35] DEBUG | Traduzido: Pedro sale del baño con la última medida
+[17:07:35] DEBUG | Traduzido: \"17 centímetros dura.\"
+[17:07:35] DEBUG | Traduzido: \"¿Cómo que dura? ¿Qué habéis hecho ahí 
+[17:07:35] DEBUG | Traduzido: \"¿Me dices primero el de Clarence?\"
+[17:07:35] DEBUG | Traduzido: \"Puse un par de vídeos.\"
+[17:07:35] DEBUG | Traduzido: \"Por el resto, el más grande es Darius 
+[17:07:36] DEBUG | Traduzido: Lucas se sonroja al escucharlo todo.
+[17:07:36] DEBUG | Traduzido: \"Me siento violado.\"
+[17:07:36] DEBUG | Traduzido: \"Por cierto, es spoilers. Espero estéis
+[17:07:36] DEBUG | Traduzido: \"Como sea, siguiente pregunta.\"
+[17:07:36] DEBUG | Traduzido: \"Si no te hubiera gustado no te habrías
+[17:07:37] DEBUG | Traduzido: \"De ninguna parte, es mi creación, traí
+[17:07:37] DEBUG | Traduzido: \"Podría decirse que New York. No tengo 
+[17:07:37] DEBUG | Traduzido: \"Sigue entrenando y verás resultados. N
+[17:07:37] DEBUG | Traduzido: \"Por lo que no encontrarás respuesta en
+[17:07:37] DEBUG | Traduzido: \"Haber montado mi primer ordenador por 
+[17:07:37] DEBUG | Traduzido: \"Nada aparte de cocinar. Apenas tengo t
+[17:07:38] DEBUG | Traduzido: \"¿No lo es Presodal? Mucha gente dice q
+[17:07:38] DEBUG | Traduzido: \"Pura coincidencia.\"
+[17:07:38] DEBUG | Traduzido: \"¿Yo? ¿Lindo? Será que tú me ves así. ¡
+[17:07:38] DEBUG | Traduzido: \"No tengo ningún favorito como tal. Si 
+[17:07:38] DEBUG | Traduzido: Alex se acerca y le agarra de las mejill
+[17:07:38] DEBUG | Traduzido: \"Toma el cumplido, no seas malo.\"
+[17:07:39] DEBUG | Traduzido: \"No sé lo que significa eso, pero ni de
+[17:07:39] DEBUG | Traduzido: \"V-V-Vale, lo tomaré.\"
+[17:07:39] DEBUG | Traduzido: Tengo que encontrar un personaje que lo 
+[17:07:39] DEBUG | Traduzido: \"¿Qué tal Lin Hu de Nekojishi?\"
+[17:07:39] DEBUG | Traduzido: \"¡BINGO! Has dado en el clavo. Eres un 
+[17:07:39] DEBUG | Traduzido: \"Puedo, pero la carne no sabría igual. 
+[17:07:40] DEBUG | Traduzido: \"Lo hice una vez y se jodió la fiesta. 
+[17:07:40] DEBUG | Traduzido: \"Debe ser genético. Mi madre dice que m
+[17:07:40] DEBUG | Traduzido: \"Lo divertido es que puedo quedarme des
+[17:07:40] DEBUG | Traduzido: \"Absolutamente.\"
+[17:07:40] DEBUG | Traduzido: \"Si fueras mi novio, me pillas de buen 
+[17:07:40] DEBUG | Traduzido: \"Cariño, por ti haría muchas cosas.\"
+[17:07:41] DEBUG | Traduzido: Le dedica un guiño y una sonrisa pícara.
+[17:07:41] DEBUG | Traduzido: \"Lo abandoné una o dos veces, pero era 
+[17:07:41] DEBUG | Traduzido: \"Y volví cuando mis estudios se volvían
+[17:07:41] DEBUG | Traduzido: \"Crear un mundo, personajes, eventos, d
+[17:07:41] DEBUG | Traduzido: \"Al final lo dejé a un lado para poder 
+[17:07:41] DEBUG | Traduzido: \"También la satisfacción de que la gent
+[17:07:42] DEBUG | Traduzido: \"Diría que la parte de arte y programac
+[17:07:42] DEBUG | Traduzido: \"Me hace sentir libre ante tanta presió
+[17:07:42] DEBUG | Traduzido: \"Tengo suerte de que Alex me presentase
+[17:07:42] DEBUG | Traduzido: \"Yo soy un claro ejemplo. No sé program
+[17:07:42] DEBUG | Traduzido: \"Bueno, esas son las partes más difícil
+[17:07:43] DEBUG | Traduzido: \"Para las tres rutas que hay ahora mism
+[17:07:43] DEBUG | Traduzido: Escritor: ¿Mas o menos ya tienes planes 
+[17:07:43] DEBUG | Traduzido: \"Son personajes difíciles de desarrolla
+[17:07:43] DEBUG | Traduzido: Ambos le miran desafiantes. Se sienten d
+[17:07:43] DEBUG | Traduzido: \"¿Difíciles en qué sentido?\"
+[17:07:43] DEBUG | Traduzido: \"Niños, no se enfaden o no tendrán post
+[17:07:43] DEBUG | Traduzido: \"Ni he tocado la comida.\"
+[17:07:44] DEBUG | Traduzido: \"¿No te gusta? ¿Te preparo otra cosa?\"
+[17:07:44] DEBUG | Traduzido: Se levanta y pasa por delante de cada un
+[17:07:44] DEBUG | Traduzido: \"No, no me refería a eso, yo... Perdón.
+[17:07:44] DEBUG | Traduzido: \"Presodal: amigo. Darius: imbécil. Marc
+[17:07:44] DEBUG | Traduzido: Agacha la cabeza, triste ante sus palabr
+[17:07:44] DEBUG | Traduzido: \"Lo siento.\"
+[17:07:45] DEBUG | Traduzido: Pedro escribe algo en su móvil. Alex le 
+[17:07:45] DEBUG | Traduzido: \"¡Se acabó la pregunta!\"
+[17:07:45] DEBUG | Traduzido: \"¿Cómo...?\"
+[17:07:46] DEBUG | Traduzido: Asiente en agradecimiento mientras vuelv
+[17:07:46] DEBUG | Traduzido: \"Magia.\"
+[17:07:46] DEBUG | Traduzido: \"Pon más fuerza la próxima vez.\"
+[17:07:46] WARNING | Interrompido pelo usuário. Cancelando tarefas que ainda não começaram e aguardando as 5 em andamento terminarem (alguns segundos)...
+[17:07:46] DEBUG | Traduzido: \"No me tientes.\"
+[17:07:46] DEBUG | Traduzido: \"En realidad pone \"peruanos\" principa
+[17:07:46] DEBUG | Traduzido: \"En cuanto a tu pregunta, todos son hom
+[17:07:46] DEBUG | Traduzido: \"Pero cállate, un error lo tiene cualqu
+[17:07:47] DEBUG | Traduzido: \"No, ninguna mujer te va a robar al tig
+[17:07:47] WARNING | Tradução interrompida após 48s. 264 de 13573 traduzidos e já podem ser salvos; o restante fica pendente para uma próxima rodada.
+[17:07:51] INFO | Duplicata ignorada (linha 50): '#999999'
+[17:07:51] INFO | Duplicata ignorada (linha 58): '#999999'
+[17:07:51] INFO | Duplicata ignorada (linha 66): '#999999'
+[17:07:51] INFO | Duplicata ignorada (linha 74): '#999999'
+[17:07:51] INFO | patreon__translatevn_pt.rpy criado (3 entradas únicas de 7 diálogos).
+[17:07:51] INFO | Duplicata ignorada (linha 275): '\\"¡¿Qué?!\\"'
+[17:07:51] INFO | qa_especial__translatevn_pt.rpy criado (261 entradas únicas de 262 diálogos).
+[17:07:51] INFO | darius_capitulos1-5__translatevn_pt.rpy criado (2 entradas únicas de 2 diálogos).
+[17:07:51] INFO | Duplicata ignorada (linha 229): '\\"¿De qué hablas?\\"'
+[17:07:51] INFO | darius_capitulos6-10__translatevn_pt.rpy criado (4 entradas únicas de 5 diálogos).
+[17:07:51] INFO | clarence_capitulos1-5__translatevn_pt.rpy criado (1 entradas únicas de 1 diálogos).
+[17:07:51] INFO | clarence_capitulos11-15__translatevn_pt.rpy criado (4 entradas únicas de 4 diálogos).
+[17:07:51] INFO | clarence_capitulos16-20__translatevn_pt.rpy criado (3 entradas únicas de 3 diálogos).
+[17:07:51] INFO | clarence_capitulos21-25__translatevn_pt.rpy criado (2 entradas únicas de 2 diálogos).
+[17:07:51] INFO | clarence_prologo__translatevn_pt.rpy criado (1 entradas únicas de 1 diálogos).
+[17:07:51] INFO | Duplicata ignorada (linha 522): '\\"¡¿Qué?!\\"'
+[17:07:51] INFO | presodal_capitulos1-5__translatevn_pt.rpy criado (3 entradas únicas de 4 diálogos).
+[17:07:51] INFO | presodal_capitulos11-15__translatevn_pt.rpy criado (1 entradas únicas de 1 diálogos).
+[17:07:51] INFO | Duplicata ignorada (linha 730): '\\"Lo siento.\\"'
+[17:07:51] INFO | Duplicata ignorada (linha 1304): '\\"Lo siento.\\"'
+[17:07:51] INFO | presodal_capitulos16-20__translatevn_pt.rpy criado (3 entradas únicas de 5 diálogos).
+[17:07:51] INFO | presodal_capitulos21_25__translatevn_pt.rpy criado (4 entradas únicas de 4 diálogos).
+[17:07:51] INFO | Duplicata ignorada (linha 609): '\\"¿A qué te refieres?\\"'
+[17:07:51] INFO | Duplicata ignorada (linha 671): '\\"¿A qué te refieres?\\"'
+[17:07:51] INFO | presodal_capitulos6-10__translatevn_pt.rpy criado (2 entradas únicas de 4 diálogos).
+[17:07:51] INFO | presodal_prologo__translatevn_pt.rpy criado (1 entradas únicas de 1 diálogos).
+[17:07:51] INFO | Duplicata ignorada (linha 949): '\\"¿Eh?\\"'
+[17:07:51] INFO | Duplicata ignorada (linha 1033): '\\"No me digas que...\\"'
+[17:07:51] INFO | capitulos1-5__translatevn_pt.rpy criado (3 entradas únicas de 5 diálogos).
+[17:07:51] INFO | capitulos11-15__translatevn_pt.rpy criado (1 entradas únicas de 1 diálogos).
+[17:07:51] INFO | capitulos16-20__translatevn_pt.rpy criado (5 entradas únicas de 5 diálogos).
+[17:07:51] INFO | Duplicata ignorada (linha 863): '\\"Mmm...\\"'
+[17:07:51] INFO | capitulos21-25__translatevn_pt.rpy criado (3 entradas únicas de 4 diálogos).
+[17:07:51] INFO | capitulos26-30__translatevn_pt.rpy criado (4 entradas únicas de 4 diálogos).
+[17:07:51] INFO | capitulos31_35__translatevn_pt.rpy criado (4 entradas únicas de 4 diálogos).
+[17:07:51] INFO | Duplicata ignorada (linha 805): '\\"¿A qué te refieres?\\"'
+[17:07:51] INFO | capitulos6-10__translatevn_pt.rpy criado (1 entradas únicas de 2 diálogos).
+[17:07:51] INFO | 22 arquivos de tradução gerados.
+[17:07:56] INFO | 22 arquivos aplicados.

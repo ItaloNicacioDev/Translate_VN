@@ -87,7 +87,13 @@ class RenPyCompiler:
         """Gera um arquivo de tradução por script de origem,
         usando o formato `translate <idioma> strings:` nativo
         do Ren'Py. Apenas diálogos com tradução preenchida são
-        incluídos."""
+        incluídos.
+
+        O Ren'Py trata o espaço de nomes `translate strings` como
+        GLOBAL por idioma — uma mesma string `old` não pode aparecer
+        em dois arquivos .rpy diferentes. Por isso o `seen_originals`
+        é criado aqui e compartilhado entre todos os arquivos gerados
+        nesta compilação."""
 
         output = Path(output_folder)
 
@@ -115,6 +121,11 @@ class RenPyCompiler:
 
             return []
 
+        # Set global compartilhado entre TODOS os arquivos gerados —
+        # evita duplicatas cross-file que causam o erro:
+        # 'A translation for "..." already exists at outro_arquivo.rpy'.
+        global_seen: set[str] = set()
+
         generated = []
 
         for file, data in files.items():
@@ -124,7 +135,8 @@ class RenPyCompiler:
                 data,
                 output,
                 source_base,
-                language_code
+                language_code,
+                global_seen
             )
 
             if result:
@@ -144,10 +156,17 @@ class RenPyCompiler:
         dialogues: list,
         output_folder: Path,
         source_base: str = None,
-        language_code: str = "pt"
+        language_code: str = "pt",
+        global_seen: set = None
     ):
         """Gera um único arquivo .rpy com blocos translate para
-        todos os diálogos traduzidos do script de origem."""
+        todos os diálogos traduzidos do script de origem.
+
+        global_seen: set compartilhado entre todos os arquivos da
+        compilação para deduplicar strings cross-file."""
+
+        if global_seen is None:
+            global_seen = set()
 
         source = Path(source_file)
 
@@ -208,12 +227,9 @@ class RenPyCompiler:
         )
         lines.append("")
 
-        # O Ren'Py exige que cada `old` seja único dentro do bloco
-        # translate strings — se o mesmo texto aparece em várias
-        # linhas do script, uma única entrada já cobre todas as
-        # ocorrências. Duplicatas causam o erro:
-        # 'A translation for "..." already exists'.
-        seen_originals: set[str] = set()
+        # Usa o set global passado pelo compile() para deduplicar
+        # tanto dentro deste arquivo quanto entre arquivos diferentes.
+        # Cada string `old` deve ser única em todo o jogo.
         written = 0
 
         for dialogue in sorted(dialogues, key=lambda d: d.get("line", 0)):
@@ -226,14 +242,15 @@ class RenPyCompiler:
                 continue
 
             # Pula se esse texto original já foi incluído antes
-            if original in seen_originals:
+            # (neste arquivo ou em qualquer arquivo anterior)
+            if original in global_seen:
                 self.logger.info(
                     f"Duplicata ignorada (linha {line_num}): "
                     f"{original[:40]!r}"
                 )
                 continue
 
-            seen_originals.add(original)
+            global_seen.add(original)
 
             original_escaped = self._escape_renpy_string(original)
             translated_escaped = self._escape_renpy_string(translated)
@@ -282,12 +299,14 @@ class RenPyCompiler:
         dialogues: list,
         output_folder: Path,
         source_base: str = None,
-        language_code: str = "pt"
+        language_code: str = "pt",
+        global_seen: set = None
     ):
         return self._compile_file(
             source_file,
             dialogues,
             output_folder,
             source_base,
-            language_code
+            language_code,
+            global_seen
         )
