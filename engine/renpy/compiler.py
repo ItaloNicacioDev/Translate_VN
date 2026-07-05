@@ -142,11 +142,84 @@ class RenPyCompiler:
             if result:
                 generated.append(result)
 
+        # Gera o arquivo que força o jogo a carregar no idioma
+        # traduzido. Sem isso, o Ren'Py mantém o idioma original
+        # (None) e os blocos "translate ... strings:" acima nunca
+        # são exibidos, mesmo estando corretos e presentes no jogo.
+        force_lang_file = self._generate_force_language_file(
+            output, language_code
+        )
+
+        if force_lang_file:
+            generated.append(force_lang_file)
+
         self.logger.info(
             f"{len(generated)} arquivos de tradução gerados."
         )
 
         return generated
+
+    # -------------------------------------------------
+
+    def _generate_force_language_file(
+        self,
+        output_folder: Path,
+        language_code: str
+    ):
+        """Cria um script que ativa o idioma traduzido automaticamente
+        na primeira vez que o jogo é iniciado depois do patch aplicado.
+
+        Importante:
+          - Só força o idioma UMA vez (controlado por uma flag salva
+            no persistent). Se o jogo tiver um menu de idiomas nativo
+            e o jogador trocar depois, o patch não fica sobrescrevendo
+            a escolha dele a cada início - não quebra esse menu.
+          - Não altera screens, styles ou defines, então não interfere
+            em nenhum outro menu do jogo.
+          - init 999 roda bem tarde, depois que preferences/idiomas
+            já foram registrados pelo jogo, garantindo que o idioma
+            exista quando for aplicado.
+        """
+
+        flag_name = f"_translatevn_forced_{language_code}"
+
+        lines = [
+            "# Ativa automaticamente o idioma traduzido gerado pelo",
+            "# Translate VN na primeira execução após aplicar o",
+            "# patch. Não força novamente depois (nao quebra menu",
+            "# de idiomas do proprio jogo, se existir).",
+            "",
+            "init 999 python:",
+            f"    if not getattr(persistent, {flag_name!r}, False):",
+            f"        _preferences.language = {language_code!r}",
+            f"        setattr(persistent, {flag_name!r}, True)",
+            "",
+        ]
+
+        output_name = (
+            f"zzz_force_language__translatevn_{language_code}.rpy"
+        )
+
+        destination = output_folder / output_name
+
+        # Remove versoes antigas com outro codigo de idioma
+        for old_file in output_folder.glob(
+            "zzz_force_language__translatevn_*.rpy"
+        ):
+            if old_file != destination:
+                old_file.unlink()
+
+        destination.write_text(
+            "\n".join(lines),
+            encoding="utf-8"
+        )
+
+        self.logger.info(
+            f"{output_name} criado (ativa o idioma '{language_code}' "
+            "automaticamente)."
+        )
+
+        return destination
 
     # -------------------------------------------------
 
