@@ -21,7 +21,6 @@ que tem prioridade sobre o download automático.
 from pathlib import Path
 import shutil
 import subprocess
-import sys
 
 from core.logger import Logger
 from core.config_manager import ConfigManager
@@ -129,53 +128,36 @@ class RenPyExtractor:
             f"Extraindo {rpa.name}"
         )
 
-        command = shutil.which("unrpa")
+        try:
+            from unrpa import UnRPA
+        except ImportError as error:
 
-        if command:
-
-            args = [command, "-mp", str(output), str(rpa)]
-
-        else:
-
-            python_executable = ToolManager.get_python_executable()
-
-            if not python_executable:
-
-                raise RuntimeError(
-                    "Não foi possível encontrar 'unrpa' nem um "
-                    "interpretador Python de verdade para rodá-lo "
-                    "(esta é uma build compilada). Instale Python e "
-                    "rode 'pip install unrpa' manualmente."
-                )
-
-            args = [
-                python_executable, "-m", "unrpa",
-                "-mp", str(output), str(rpa)
-            ]
+            raise RuntimeError(
+                "O módulo 'unrpa' não está disponível nesta build. "
+                "Ele precisa estar instalado no ambiente usado para "
+                "gerar o .exe (pip install unrpa) para que o "
+                "PyInstaller o inclua no pacote."
+            ) from error
 
         try:
 
-            result = subprocess.run(
-                args,
-                capture_output=True,
-                text=True,
-                stdin=subprocess.DEVNULL,
-                timeout=300
+            unrpa_extractor = UnRPA(
+                str(rpa),
+                0,
+                str(output),
+                True,
+                None,
+                True,
+                None,
             )
 
-        except subprocess.TimeoutExpired:
+            unrpa_extractor.extract_files()
+
+        except Exception as error:
 
             raise RuntimeError(
-                f"Tempo esgotado ao extrair {rpa.name} "
-                "(mais de 5 minutos sem resposta)."
-            )
-
-        if result.returncode != 0:
-
-            raise RuntimeError(
-                "Falha ao extrair "
-                f"{rpa.name}: {result.stderr.strip()}"
-            )
+                f"Falha ao extrair {rpa.name}: {error}"
+            ) from error
 
         self.logger.info(
             "Extração concluída."
@@ -185,23 +167,37 @@ class RenPyExtractor:
     # unrpyc
     # -------------------------------------------------
 
-    def _run_unrpyc(self, script_path: Path, game_folder: str):
+    def _run_unrpyc(self, tool_path: Path, game_folder: str):
 
-        python_executable = ToolManager.get_python_executable()
+        if tool_path.suffix.lower() == ".py":
 
-        if not python_executable:
+            # Modo dev: é o script baixado do GitHub, precisa de um
+            # interpretador Python de verdade pra rodar.
+            python_executable = ToolManager.get_python_executable()
 
-            raise RuntimeError(
-                "Não foi possível descompilar: nenhum interpretador "
-                "Python de verdade foi encontrado no sistema (esta é "
-                "uma build compilada). Instale Python e garanta que "
-                "ele fique acessível no PATH."
-            )
+            if not python_executable:
+
+                raise RuntimeError(
+                    "Não foi possível descompilar: nenhum "
+                    "interpretador Python de verdade foi encontrado "
+                    "no sistema (esta é uma build compilada). "
+                    "Instale Python e garanta que ele fique "
+                    "acessível no PATH."
+                )
+
+            args = [python_executable, str(tool_path), str(game_folder)]
+
+        else:
+
+            # Executável já compilado (bundled ou apontado
+            # manualmente em unrpyc_path) -- roda direto, sem
+            # depender de nenhum Python instalado.
+            args = [str(tool_path), str(game_folder)]
 
         try:
 
             result = subprocess.run(
-                [python_executable, str(script_path), str(game_folder)],
+                args,
                 capture_output=True,
                 text=True,
                 stdin=subprocess.DEVNULL,
