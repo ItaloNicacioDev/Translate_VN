@@ -290,6 +290,8 @@
   }
   .vn-log .line{margin-bottom:4px;}
   .vn-log .who{color:var(--accent);font-weight:500;}
+  .vn-log .who.warn{color:var(--coral);}
+  .vn-log .who.err{color:var(--danger);}
   .vn-log .caret{display:inline-block;width:8px;background:var(--accent);animation:blink 1s steps(1) infinite;}
   @keyframes blink{50%{opacity:0;}}
   .vn-log .empty{color:var(--text-faint);font-style:italic;}
@@ -334,6 +336,32 @@
   .plugin-remove{background:none;border:none;color:var(--text-faint);cursor:pointer;font-size:15px;}
   .plugin-remove:hover{color:var(--danger);}
   .plugin-empty{font-size:12.5px;color:var(--text-faint);text-align:center;padding:14px 0;}
+
+  /* ---------- REVIEW (revisar dialogos) ---------- */
+  .review-toolbar{display:flex;gap:8px;padding:14px 20px 0;flex-wrap:wrap;}
+  .review-toolbar button{
+    font-size:12px;padding:7px 12px;border-radius:100px;border:1px solid var(--border);
+    background:var(--bg-panel-raised);color:var(--text-muted);cursor:pointer;font-weight:600;
+  }
+  .review-toolbar button.active{background:var(--accent-soft);color:var(--accent);border-color:var(--accent-soft);}
+  .review-list{flex:1;overflow-y:auto;max-height:360px;padding:14px 20px 20px;}
+  .review-row{
+    border:1px solid var(--border-soft);border-radius:12px;padding:12px 14px;margin-bottom:8px;
+    background:var(--bg-panel-raised);
+  }
+  .review-row .orig{font-size:13px;color:var(--text-muted);margin-bottom:4px;}
+  .review-row textarea{
+    width:100%;min-height:44px;border-radius:8px;border:1px solid var(--border);
+    background:var(--bg-input);color:var(--text-primary);font-size:13px;padding:8px;
+    font-family:'Manrope',sans-serif;resize:vertical;
+  }
+  .review-row .row-actions{display:flex;gap:6px;margin-top:8px;justify-content:flex-end;}
+  .review-row .row-actions button{
+    font-size:11.5px;padding:5px 10px;border-radius:8px;border:1px solid var(--border);
+    background:transparent;color:var(--text-muted);cursor:pointer;font-weight:600;
+  }
+  .review-row .row-actions button:hover{border-color:var(--accent);color:var(--accent);}
+  .review-row .row-actions button.danger:hover{border-color:var(--danger);color:var(--danger);}
 </style>
 </head>
 <body>
@@ -389,9 +417,8 @@
       <div class="field-group">
         <label class="field-label" data-i18n="novo_folder_label">Pasta do jogo</label>
         <div class="field-row">
-          <input class="field-input" id="novoPasta" placeholder="C:\Jogos\BuscaLlamas">
-          <button class="browse" onclick="document.getElementById('novoPastaFile').click()" data-i18n="browse_btn">Procurar</button>
-          <input type="file" id="novoPastaFile" webkitdirectory style="display:none" onchange="pickFolder(event,'novoPasta')">
+          <input class="field-input" id="novoPasta" placeholder="C:\Jogos\BuscaLlamas" readonly>
+          <button class="browse" onclick="escolherPasta('novoPasta')" data-i18n="browse_btn">Procurar</button>
         </div>
         <p class="field-hint" data-i18n="novo_hint">O motor Ren'Py é detectado automaticamente ao criar o projeto.</p>
       </div>
@@ -466,6 +493,16 @@
       </div>
 
       <div class="settings-card">
+        <div class="switch-row">
+          <div>
+            <p class="row-title" data-i18n="auto_backup_title">Backup automático</p>
+            <p class="row-desc" data-i18n="auto_backup_desc">Sugere criar backup por padrão ao aplicar uma tradução.</p>
+          </div>
+          <div class="switch active" id="autoBackupSwitch" onclick="toggleAutoBackup()"><div class="knob"></div></div>
+        </div>
+      </div>
+
+      <div class="settings-card">
         <p class="row-title" data-i18n="default_lang_title">Idioma de tradução padrão</p>
         <p class="row-desc" data-i18n="default_lang_desc">Usado como destino sempre que um novo projeto é criado.</p>
         <select class="field-input" id="defaultLang" onchange="setDefaultLanguage(this.value)"></select>
@@ -499,7 +536,7 @@
       </div>
 
       <div class="status-col">
-        <div class="status-panel">
+        <div class="status-panel" id="statusPanel">
           <div class="status-panel-head">
             <h3 data-i18n="status_title">Status</h3>
             <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
@@ -540,27 +577,22 @@
 </div>
 
 <script>
-  // Formato dos dados alinhado ao que o backend (project_manager.py)
-  // realmente grava em cada projects/<nome>/project.json
+  // ===========================================================
+  // Estado da UI. Diferente da versao de protótipo, agora
+  // NADA aqui e' inventado -- tudo vem de pywebview.api, que e'
+  // a ponte pro codigo Python real (core/, engine/) descrita em
+  // gui_api.py.
+  // ===========================================================
   const state = {
     theme: 'dark',
     uiLang: 'pt',
     plugins: [],
-    currentProject: 'Busca Llamas',
+    currentProjectName: null,
     defaultLanguage: 'pt_BR',
-    languages: [
-      {code:'pt_BR', name:'Português (Brasil)'},
-      {code:'en', name:'English'},
-      {code:'es', name:'Español'},
-      {code:'fr', name:'Français'},
-      {code:'ja', name:'日本語'},
-      {code:'de', name:'Deutsch'}
-    ],
-    projects: [
-      {name:'Busca Llamas', engine:"Ren'Py", version:'8.4.1', game_path:'C:\\Jogos\\BuscaLlamas', language_original:'es', language_translation:'pt_BR', created_at:'2026-07-01T14:20:00'},
-      {name:'QA Especial', engine:"Ren'Py", version:'7.4.11', game_path:'C:\\Jogos\\LabiosSalvajes', language_original:'en', language_translation:'pt_BR', created_at:'2026-06-24T09:05:00'},
-      {name:'Labios Salvajes', engine:"Ren'Py", version:'8.4.1', game_path:'C:\\Jogos\\LabiosSalvajes', language_original:'es', language_translation:'pt_BR', created_at:'2026-06-10T18:40:00'}
-    ]
+    autoBackup: true,
+    languages: [],
+    projects: [],
+    reviewFilter: null
   };
 
   // Textos da interface (PT/EN). Não confundir com state.languages,
@@ -579,6 +611,7 @@
       add_btn:'Adicionar', idiomas_hint:'O idioma marcado como padrão é usado automaticamente em novos projetos.',
       lang_code_placeholder:'Código (ex: pt_BR)', lang_name_placeholder:'Nome (ex: Português (Brasil))',
       config_title:'Configurações', dark_theme_title:'Tema escuro', dark_theme_desc:'Alterna a aparência de todo o aplicativo.',
+      auto_backup_title:'Backup automático', auto_backup_desc:'Sugere criar backup por padrão ao aplicar uma tradução.',
       default_lang_title:'Idioma de tradução padrão', default_lang_desc:'Usado como destino sempre que um novo projeto é criado.',
       save_config_btn:'Salvar configurações', config_saved_banner:'Configurações salvas.',
       project_eyebrow:'Projeto', side_detect:'Detectar jogo', side_extract:'Extrair arquivos',
@@ -593,20 +626,9 @@
       add_open_label:'Abrir',
       badge_default:'Padrão', make_default_btn:'Tornar padrão',
       alert_missing_fields:'Informe o nome do projeto e a pasta do jogo.',
-      alert_project_exists:"O projeto '{name}' já existe.",
-      alert_lang_exists:"O idioma '{code}' já está no catálogo.",
-      alert_default_lang_required:'Defina outro idioma como padrão antes de remover este.',
       alert_goodbye:'Até a próxima sessão de tradução.',
-      actions: {
-        detectar: ["Procurando executável Ren'Py na pasta do jogo...", "Motor encontrado: Ren'Py 8.4.1.25072401.", "Jogo detectado com sucesso."],
-        extrair: ["Copiando roteiro para a área de trabalho temporária...", "142 arquivos .rpy copiados.", "Extração concluída."],
-        ler: ["Indexando falas do roteiro...", "3.482 linhas de diálogo encontradas.", "Índice pronto para tradução."],
-        traduzir: ["Protegendo aspas escapadas e tags antes de enviar...", "Traduzindo lotes para pt-br...", "Restaurando aspas e tags originais...", "Tradução automática concluída."],
-        revisar: ["Abrindo editor de diálogos...", "Aguardando revisão manual das linhas traduzidas."],
-        gerar: ["Compilando arquivos traduzidos...", "Empacotando pasta tl/pt-br...", "Pacote de tradução gerado."],
-        aplicar: ["Verificando se já existe uma tradução pt-br no jogo...", "Tradução anterior encontrada e removida.", "Copiando os novos arquivos traduzidos para o jogo...", "Tradução aplicada com sucesso."],
-        remover: ["Localizando arquivos de tradução no jogo...", "Removendo arquivos gerados pelo Tradutor VN...", "Tradução removida do jogo."]
-      }
+      review_all:'Todos', review_translated:'Traduzidos', review_reviewed:'Revisados', review_pending:'Pendentes',
+      review_save:'Salvar', review_restore:'Restaurar', review_delete:'Excluir', review_empty:'Nenhum diálogo encontrado.'
     },
     en: {
       home_title:'Welcome', home_subtitle:"Your Ren'Py visual novel translation studio.",
@@ -621,6 +643,7 @@
       add_btn:'Add', idiomas_hint:'The language marked as default is used automatically for new projects.',
       lang_code_placeholder:'Code (e.g. pt_BR)', lang_name_placeholder:'Name (e.g. Português (Brasil))',
       config_title:'Settings', dark_theme_title:'Dark theme', dark_theme_desc:"Switches the whole app's appearance.",
+      auto_backup_title:'Automatic backup', auto_backup_desc:'Suggests creating a backup by default when applying a translation.',
       default_lang_title:'Default translation language', default_lang_desc:'Used as the target whenever a new project is created.',
       save_config_btn:'Save settings', config_saved_banner:'Settings saved.',
       project_eyebrow:'Project', side_detect:'Detect game', side_extract:'Extract files',
@@ -635,24 +658,48 @@
       add_open_label:'Open',
       badge_default:'Default', make_default_btn:'Set as default',
       alert_missing_fields:'Enter the project name and the game folder.',
-      alert_project_exists:"Project '{name}' already exists.",
-      alert_lang_exists:"Language '{code}' is already in the catalog.",
-      alert_default_lang_required:'Set another language as default before removing this one.',
       alert_goodbye:'See you at the next translation session.',
-      actions: {
-        detectar: ["Looking for the Ren'Py executable in the game folder...", "Engine found: Ren'Py 8.4.1.25072401.", "Game detected successfully."],
-        extrair: ["Copying the script to the temporary workspace...", "142 .rpy files copied.", "Extraction complete."],
-        ler: ["Indexing script dialogue...", "3,482 dialogue lines found.", "Index ready for translation."],
-        traduzir: ["Protecting escaped quotes and tags before sending...", "Translating batches to pt-br...", "Restoring original quotes and tags...", "Automatic translation complete."],
-        revisar: ["Opening the dialogue editor...", "Waiting for manual review of translated lines."],
-        gerar: ["Compiling translated files...", "Packaging the tl/pt-br folder...", "Translation package generated."],
-        aplicar: ["Checking whether a pt-br translation already exists in the game...", "Previous translation found and removed.", "Copying the new translated files into the game...", "Translation applied successfully."],
-        remover: ["Locating translation files in the game...", "Removing files generated by Translate VN...", "Translation removed from the game."]
-      }
+      review_all:'All', review_translated:'Translated', review_reviewed:'Reviewed', review_pending:'Pending',
+      review_save:'Save', review_restore:'Restore', review_delete:'Delete', review_empty:'No dialogue found.'
     }
   };
 
   function tr(key){ return translations[state.uiLang][key] || key; }
+
+  // ===========================================================
+  // Chamada de API com tratamento de erro padronizado. Todo
+  // metodo do gui_api.py devolve {ok, data} ou {ok:false, error}.
+  // ===========================================================
+  async function callApi(method, ...args){
+    try{
+      const result = await window.pywebview.api[method](...args);
+      if(!result.ok){
+        alert(result.error);
+        return null;
+      }
+      return result.data;
+    }catch(err){
+      alert(String(err));
+      return null;
+    }
+  }
+
+  // Recebe logs em tempo real do backend (ver gui_api.py -> GuiLogHandler)
+  window.onBackendLog = function(payload){
+    appendLogLine(payload.message, payload.level);
+  };
+
+  function appendLogLine(text, level){
+    const log = document.getElementById('vnLog');
+    const empty = log.querySelector('.empty');
+    if(empty) empty.remove();
+    const p = document.createElement('p');
+    p.className = 'line';
+    const cls = level === 'error' ? 'err' : (level === 'warning' ? 'warn' : '');
+    p.innerHTML = `<span class="who ${cls}">${tr('system_label')}&gt;</span> ${text}`;
+    log.appendChild(p);
+    log.scrollTop = log.scrollHeight;
+  }
 
   function applyLanguage(lang){
     state.uiLang = lang;
@@ -670,12 +717,13 @@
   }
 
   function formatDate(iso){
+    if(!iso) return '';
     const d = new Date(iso);
     return d.toLocaleDateString(state.uiLang === 'pt' ? 'pt-BR' : 'en-US');
   }
   function langName(code){
     const found = state.languages.find(l => l.code === code);
-    return found ? found.name : code;
+    return found ? found.name : (code || '—');
   }
 
   function nav(id){
@@ -689,6 +737,7 @@
 
   function sairApp(){
     alert(tr('alert_goodbye'));
+    window.close();
   }
 
   // ---------- THEME ----------
@@ -701,52 +750,39 @@
   }
   function toggleTheme(){ setTheme(state.theme==='dark' ? 'light' : 'dark'); }
   document.getElementById('themeToggle').addEventListener('click', toggleTheme);
-  setTheme('dark');
-  populateDefaultLangSelect();
-  renderPlugins();
 
-  // ---------- FILE PICKER HELPERS ----------
-  function pickFolder(ev, targetId){
-    const files = ev.target.files;
-    if(files.length){
-      const rel = files[0].webkitRelativePath || files[0].name;
-      document.getElementById(targetId).value = rel.split('/')[0];
-    }
+  function toggleAutoBackup(){
+    state.autoBackup = !state.autoBackup;
+    document.getElementById('autoBackupSwitch').classList.toggle('active', state.autoBackup);
   }
-  function pickFile(ev, targetId){
-    const files = ev.target.files;
-    if(files.length){ document.getElementById(targetId).value = files[0].name; }
+
+  // ---------- ESCOLHER PASTA (dialogo nativo, via gui_api.pick_folder) ----------
+  async function escolherPasta(targetId){
+    const folder = await callApi('pick_folder');
+    if(folder){
+      document.getElementById(targetId).value = folder;
+    }
   }
 
   // ---------- NOVO / ABRIR / LISTAR ----------
-  function criarProjeto(){
+  async function criarProjeto(){
     const nome = document.getElementById('novoNome').value.trim();
     const pasta = document.getElementById('novoPasta').value.trim();
     if(!nome || !pasta){
       alert(tr('alert_missing_fields'));
       return;
     }
-    if(state.projects.some(p => p.name === nome)){
-      alert(tr('alert_project_exists').replace('{name}', nome));
-      return;
-    }
-    // Espelha ProjectManager.create(): engine/versão vêm do detector,
-    // idioma original fica em branco e o de tradução usa o padrão atual.
-    const novo = {
-      name: nome,
-      engine: "Ren'Py",
-      version: '8.4.1',
-      game_path: pasta,
-      language_original: '',
-      language_translation: state.defaultLanguage,
-      created_at: new Date().toISOString()
-    };
-    state.projects.push(novo);
-    state.currentProject = nome;
-    document.getElementById('projectName').textContent = nome;
-    resetStatusPanel();
-    nav('project');
+    const project = await callApi('new_project', nome, pasta);
+    if(!project) return;
+    await loadProjects();
+    abrirExistente(nome);
   }
+
+  async function loadProjects(){
+    const list = await callApi('list_projects');
+    if(list) state.projects = list;
+  }
+
   function renderRecentes(){
     const busca = (document.getElementById('abrirBusca')?.value || '').trim().toLowerCase();
     const wrap = document.getElementById('recentesList');
@@ -768,14 +804,22 @@
         <div style="margin-top:12px;"><button class="btn primary" onclick="abrirExistente('${p.name}')">${tr('add_open_label')}</button></div>
       </div>`).join('') : `<p class="plugin-empty">${tr('empty_projects')}</p>`;
   }
-  function abrirExistente(nome){
-    state.currentProject = nome;
+  async function abrirExistente(nome){
+    const project = await callApi('open_project', nome);
+    if(!project) return;
+    state.currentProjectName = nome;
     document.getElementById('projectName').textContent = nome;
     resetStatusPanel();
     nav('project');
   }
 
   // ---------- IDIOMAS ----------
+  async function loadLanguages(){
+    const list = await callApi('list_languages');
+    if(list) state.languages = list;
+    const def = await callApi('get_default_language');
+    if(def) state.defaultLanguage = def;
+  }
   function renderLangs(){
     const wrap = document.getElementById('langList');
     wrap.innerHTML = state.languages.map(l => `
@@ -785,36 +829,34 @@
           ? `<span class="badge ok">${tr('badge_default')}</span>`
           : `<div style="display:flex;gap:8px;">
                <button class="btn" onclick="setDefaultLanguage('${l.code}')">${tr('make_default_btn')}</button>
-               <button class="plugin-remove" onclick="removeLang('${l.code}')">&times;</button>
+               <button class="plugin-remove" onclick="removeLang(${l.id})">&times;</button>
              </div>`}
       </div>`).join('');
   }
-  function addLang(){
+  async function addLang(){
     const codeInput = document.getElementById('newLangCode');
     const nameInput = document.getElementById('newLangName');
     const code = codeInput.value.trim();
     const name = nameInput.value.trim();
     if(!code || !name) return;
-    if(state.languages.some(l => l.code === code)){
-      alert(tr('alert_lang_exists').replace('{code}', code));
-      return;
-    }
-    state.languages.push({code, name});
+    const result = await callApi('add_language', code, name);
+    if(result === null) return;
     codeInput.value = '';
     nameInput.value = '';
+    await loadLanguages();
     renderLangs();
     populateDefaultLangSelect();
   }
-  function removeLang(code){
-    if(code === state.defaultLanguage){
-      alert(tr('alert_default_lang_required'));
-      return;
-    }
-    state.languages = state.languages.filter(l => l.code !== code);
+  async function removeLang(id){
+    const result = await callApi('remove_language', id);
+    if(result === null) return;
+    await loadLanguages();
     renderLangs();
     populateDefaultLangSelect();
   }
-  function setDefaultLanguage(code){
+  async function setDefaultLanguage(code){
+    const result = await callApi('set_default_language', code);
+    if(result === null) return;
     state.defaultLanguage = code;
     renderLangs();
     populateDefaultLangSelect();
@@ -827,13 +869,25 @@
   }
 
   // ---------- CONFIGURAÇÕES ----------
-  function salvarConfig(){
+  async function loadSettings(){
+    const settings = await callApi('get_settings');
+    if(!settings) return;
+    setTheme(settings.theme === 'light' ? 'light' : 'dark');
+    state.autoBackup = !!settings.auto_backup;
+    document.getElementById('autoBackupSwitch').classList.toggle('active', state.autoBackup);
+  }
+  async function salvarConfig(){
+    const result = await callApi('save_settings', {
+      theme: state.theme,
+      auto_backup: state.autoBackup
+    });
+    if(result === null) return;
     const banner = document.getElementById('configBanner');
     banner.classList.add('show');
     setTimeout(()=>banner.classList.remove('show'), 2200);
   }
 
-  // ---------- PLUGINS ----------
+  // ---------- PLUGINS (ainda nao ligado a um backend real) ----------
   function openPluginModal(){ document.getElementById('pluginModal').classList.add('show'); renderPlugins(); }
   function closePluginModal(){ document.getElementById('pluginModal').classList.remove('show'); }
   function renderPlugins(){
@@ -863,71 +917,198 @@
   }
   function removePlugin(i){ state.plugins.splice(i,1); renderPlugins(); }
 
-  // ---------- PROJECT ACTIONS (VN-style status log) ----------
+  // ===========================================================
+  // AÇÕES DO PROJETO -- agora chamam de verdade o gui_api.py,
+  // que por sua vez chama exatamente o mesmo codigo que o CLI
+  // (main.py) ja usava.
+  // ===========================================================
   let running = false;
+
   function resetStatusPanel(){
+    showLogView();
     document.getElementById('vnLog').innerHTML = `<p class="empty">${tr('log_empty')}</p>`;
     document.getElementById('progressFill').style.width = '0%';
     document.getElementById('timerValue').textContent = '--:--';
     document.querySelectorAll('.side-btn').forEach(b=>b.classList.remove('active'));
   }
 
+  function showLogView(){
+    const panel = document.getElementById('statusPanel');
+    panel.innerHTML = `
+      <div class="status-panel-head">
+        <h3 data-i18n="status_title">${tr('status_title')}</h3>
+        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      </div>
+      <div class="vn-log" id="vnLog"><p class="empty">${tr('log_empty')}</p></div>
+    `;
+  }
+
   async function runAction(key, btnEl){
     if(running) return;
+
+    if(key === 'revisar'){
+      document.querySelectorAll('.side-btn').forEach(b=>b.classList.remove('active'));
+      btnEl.classList.add('active');
+      await openReview();
+      return;
+    }
+
+    if(key === 'aplicar'){
+      if(!confirm(state.uiLang === 'pt'
+        ? 'Isso vai copiar os arquivos traduzidos para dentro da pasta do jogo. Confirmar?'
+        : 'This will copy the translated files into the game folder. Confirm?')) return;
+    }
+
+    if(key === 'remover'){
+      if(!confirm(state.uiLang === 'pt'
+        ? 'Isso vai remover os arquivos de tradução do jogo. Confirmar?'
+        : 'This will remove the translation files from the game. Confirm?')) return;
+    }
+
     running = true;
     document.querySelectorAll('.side-btn').forEach(b=>b.classList.remove('active'));
     btnEl.classList.add('active');
+    showLogView();
 
-    const log = document.getElementById('vnLog');
-    log.innerHTML = '';
     const fill = document.getElementById('progressFill');
-    fill.style.width = '0%';
-    const lines = translations[state.uiLang].actions[key];
-    let secondsLeft = lines.length * 2 + 2;
-    updateTimer(secondsLeft);
-    const timerInterval = setInterval(()=>{
-      secondsLeft = Math.max(0, secondsLeft - 1);
-      updateTimer(secondsLeft);
-      if(secondsLeft===0) clearInterval(timerInterval);
-    }, 1000);
+    fill.style.width = '10%';
+    startIndeterminateTimer();
 
-    for(let i=0;i<lines.length;i++){
-      await typeLine(log, lines[i]);
-      fill.style.width = Math.round(((i+1)/lines.length)*100) + '%';
+    let result = null;
+
+    try{
+      switch(key){
+        case 'detectar':
+          result = await callApi('detect');
+          break;
+        case 'extrair':
+          result = await callApi('extract');
+          break;
+        case 'ler':
+          result = await callApi('index_dialogues');
+          break;
+        case 'traduzir':
+          result = await callApi('translate');
+          break;
+        case 'gerar':
+          result = await callApi('generate_package');
+          break;
+        case 'aplicar':
+          result = await callApi('apply_translation', state.autoBackup);
+          break;
+        case 'remover':
+          result = await callApi('remove_translation');
+          break;
+      }
+    } finally {
+      running = false;
+      stopIndeterminateTimer();
+      fill.style.width = result !== null ? '100%' : '0%';
     }
-    clearInterval(timerInterval);
-    updateTimer(0);
-    running = false;
   }
 
-  function updateTimer(s){
-    const m = Math.floor(s/60).toString().padStart(2,'0');
-    const sec = (s%60).toString().padStart(2,'0');
-    document.getElementById('timerValue').textContent = s>0 ? `${m}:${sec}` : tr('timer_done');
+  let timerInterval = null;
+  function startIndeterminateTimer(){
+    let seconds = 0;
+    document.getElementById('timerValue').textContent = '00:00';
+    timerInterval = setInterval(()=>{
+      seconds++;
+      const m = Math.floor(seconds/60).toString().padStart(2,'0');
+      const s = (seconds%60).toString().padStart(2,'0');
+      document.getElementById('timerValue').textContent = `${m}:${s}`;
+    }, 1000);
+  }
+  function stopIndeterminateTimer(){
+    if(timerInterval) clearInterval(timerInterval);
+    document.getElementById('timerValue').textContent = tr('timer_done');
   }
 
-  function typeLine(log, text){
-    return new Promise(resolve=>{
-      const p = document.createElement('p');
-      p.className = 'line';
-      const who = tr('system_label');
-      p.innerHTML = `<span class="who">${who}&gt;</span> `;
-      log.appendChild(p);
-      log.scrollTop = log.scrollHeight;
-      let i = 0;
-      const speed = 12;
-      const timer = setInterval(()=>{
-        p.innerHTML = `<span class="who">${who}&gt;</span> ` + text.slice(0,i) + '<span class="caret">&nbsp;</span>';
-        log.scrollTop = log.scrollHeight;
-        i++;
-        if(i > text.length){
-          clearInterval(timer);
-          p.innerHTML = `<span class="who">${who}&gt;</span> ` + text;
-          resolve();
-        }
-      }, speed);
-    });
+  // ---------- REVISÃO DE DIÁLOGOS ----------
+  async function openReview(){
+    state.reviewFilter = null;
+    const panel = document.getElementById('statusPanel');
+    panel.innerHTML = `
+      <div class="status-panel-head">
+        <h3>${tr('side_review')}</h3>
+      </div>
+      <div class="review-toolbar" id="reviewToolbar"></div>
+      <div class="review-list" id="reviewList"></div>
+    `;
+    renderReviewToolbar();
+    await renderReviewList();
   }
+
+  function renderReviewToolbar(){
+    const filters = [
+      {value:null, label:tr('review_all')},
+      {value:'translated', label:tr('review_translated')},
+      {value:'reviewed', label:tr('review_reviewed')},
+      {value:'pending', label:tr('review_pending')}
+    ];
+    const wrap = document.getElementById('reviewToolbar');
+    wrap.innerHTML = filters.map(f => `
+      <button class="${state.reviewFilter===f.value?'active':''}" onclick="setReviewFilter(${f.value?`'${f.value}'`:null})">${f.label}</button>
+    `).join('');
+  }
+
+  async function setReviewFilter(value){
+    state.reviewFilter = value;
+    renderReviewToolbar();
+    await renderReviewList();
+  }
+
+  async function renderReviewList(){
+    const dialogues = await callApi('list_dialogues', state.reviewFilter);
+    const wrap = document.getElementById('reviewList');
+    if(!dialogues || !dialogues.length){
+      wrap.innerHTML = `<p class="plugin-empty">${tr('review_empty')}</p>`;
+      return;
+    }
+    wrap.innerHTML = dialogues.map(d => `
+      <div class="review-row">
+        <div class="orig">${escapeHtml(d.original)}</div>
+        <textarea id="dlg-${d.id}">${escapeHtml(d.translated)}</textarea>
+        <div class="row-actions">
+          <button onclick="restoreDialogue(${d.id})">${tr('review_restore')}</button>
+          <button class="danger" onclick="deleteDialogueTranslation(${d.id})">${tr('review_delete')}</button>
+          <button onclick="saveDialogue(${d.id})">${tr('review_save')}</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  }
+
+  async function saveDialogue(id){
+    const value = document.getElementById(`dlg-${id}`).value;
+    const result = await callApi('update_dialogue', id, value);
+    if(result !== null) await renderReviewList();
+  }
+  async function restoreDialogue(id){
+    const result = await callApi('restore_dialogue', id);
+    if(result !== null) await renderReviewList();
+  }
+  async function deleteDialogueTranslation(id){
+    const result = await callApi('delete_dialogue_translation', id);
+    if(result !== null) await renderReviewList();
+  }
+
+  // ===========================================================
+  // Boot: espera o pywebview injetar window.pywebview.api antes
+  // de carregar qualquer dado real.
+  // ===========================================================
+  window.addEventListener('pywebviewready', async () => {
+    setTheme('dark');
+    await loadSettings();
+    await loadLanguages();
+    await loadProjects();
+    populateDefaultLangSelect();
+    renderPlugins();
+  });
 </script>
 </body>
 </html>
