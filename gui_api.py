@@ -806,6 +806,25 @@ class Api:
 
         return {"ok": True, "data": result[0]}
 
+    def quit_app(self):
+        """Fecha a janela de verdade. window.close() do lado do
+        JavaScript nao funciona dentro do pywebview (restricao do
+        proprio motor de navegador embutido) -- por isso o botao
+        'Sair' precisa passar por aqui, do lado do Python."""
+
+        import webview
+
+        def _close_later():
+            webview.windows[0].destroy()
+
+        # Roda numa thread separada com um pequeno delay: se a gente
+        # chamar destroy() direto aqui, ainda dentro da propria
+        # chamada de API que o JS esta aguardando, a resposta nunca
+        # chega de volta pro JS (a janela some no meio do caminho).
+        threading.Timer(0.15, _close_later).start()
+
+        return {"ok": True, "data": None}
+
     # ===================================================
 
     def _require_current_project(self):

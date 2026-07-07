@@ -737,9 +737,9 @@
     window.scrollTo({top:0,behavior:'smooth'});
   }
 
-  function sairApp(){
+  async function sairApp(){
     alert(tr('alert_goodbye'));
-    window.close();
+    await callApi('quit_app');
   }
 
   // ---------- THEME ----------
