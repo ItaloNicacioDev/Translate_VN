@@ -45,10 +45,12 @@ def main():
         min_size=(860, 600)
     )
 
-    # O handler de log precisa da instancia da janela, que so'
-    # existe depois do create_window acima -- por isso o get_window
-    # e' uma funcao (lazy), nao a janela direto.
+    # O handler de log e o push de progresso da Api precisam da
+    # instancia da janela, que so' existe depois do create_window
+    # acima -- por isso get_window e' uma funcao (lazy), nao a
+    # janela direto.
     attach_gui_log_handler(lambda: window)
+    api.set_window_getter(lambda: window)
 
     webview.start()
 
