@@ -628,7 +628,8 @@
       alert_missing_fields:'Informe o nome do projeto e a pasta do jogo.',
       alert_goodbye:'Até a próxima sessão de tradução.',
       review_all:'Todos', review_translated:'Traduzidos', review_reviewed:'Revisados', review_pending:'Pendentes',
-      review_save:'Salvar', review_restore:'Restaurar', review_delete:'Excluir', review_empty:'Nenhum diálogo encontrado.'
+      review_save:'Salvar', review_restore:'Restaurar', review_delete:'Excluir', review_empty:'Nenhum diálogo encontrado.',
+      cancel_translate_btn:'Cancelar', eta_calculating:'calculando...', cancelling_label:'Cancelando...'
     },
     en: {
       home_title:'Welcome', home_subtitle:"Your Ren'Py visual novel translation studio.",
@@ -660,7 +661,8 @@
       alert_missing_fields:'Enter the project name and the game folder.',
       alert_goodbye:'See you at the next translation session.',
       review_all:'All', review_translated:'Translated', review_reviewed:'Reviewed', review_pending:'Pending',
-      review_save:'Save', review_restore:'Restore', review_delete:'Delete', review_empty:'No dialogue found.'
+      review_save:'Save', review_restore:'Restore', review_delete:'Delete', review_empty:'No dialogue found.',
+      cancel_translate_btn:'Cancel', eta_calculating:'calculating...', cancelling_label:'Cancelling...'
     }
   };
 
@@ -925,19 +927,25 @@
   let running = false;
 
   function resetStatusPanel(){
-    showLogView();
+    showLogView(false);
     document.getElementById('vnLog').innerHTML = `<p class="empty">${tr('log_empty')}</p>`;
     document.getElementById('progressFill').style.width = '0%';
     document.getElementById('timerValue').textContent = '--:--';
     document.querySelectorAll('.side-btn').forEach(b=>b.classList.remove('active'));
   }
 
-  function showLogView(){
+  function showLogView(showCancelBtn){
     const panel = document.getElementById('statusPanel');
     panel.innerHTML = `
       <div class="status-panel-head">
         <h3 data-i18n="status_title">${tr('status_title')}</h3>
-        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          ${showCancelBtn ? `<button id="cancelTranslateBtn" onclick="cancelTranslation()"
+              style="font-size:12px;padding:6px 12px;border-radius:100px;border:1px solid var(--danger);
+              background:var(--danger-soft);color:var(--danger);cursor:pointer;font-weight:600;">
+              ${tr('cancel_translate_btn')}</button>` : ''}
+          <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+        </div>
       </div>
       <div class="vn-log" id="vnLog"><p class="empty">${tr('log_empty')}</p></div>
     `;
@@ -968,13 +976,44 @@
     running = true;
     document.querySelectorAll('.side-btn').forEach(b=>b.classList.remove('active'));
     btnEl.classList.add('active');
-    showLogView();
+
+    const fill_ignored = key; // no-op, mantem legibilidade do diff
+
+    let result = null;
+
+    if(key === 'traduzir'){
+
+      // Traducao tem progresso e cancelamento reais, vindos do
+      // backend (window.onTranslateProgress) -- nao usa o timer
+      // "contando pra cima" generico das outras acoes.
+      showLogView(true);
+      document.getElementById('progressFill').style.width = '0%';
+      document.getElementById('timerValue').textContent = tr('eta_calculating');
+
+      try{
+        result = await callApi('translate');
+
+        if(result){
+          const msg = state.uiLang === 'pt'
+            ? `${result.translated} diálogo(s) traduzido(s)${result.interrupted ? ' (cancelado pelo usuário)' : ''}. ${result.pending_remaining} ainda pendente(s).`
+            : `${result.translated} dialogue(s) translated${result.interrupted ? ' (cancelled by user)' : ''}. ${result.pending_remaining} still pending.`;
+          appendLogLine(msg, result.interrupted ? 'warning' : 'info');
+        }
+      } finally {
+        running = false;
+        document.getElementById('timerValue').textContent = tr('timer_done');
+        const btn = document.getElementById('cancelTranslateBtn');
+        if(btn) btn.remove();
+      }
+
+      return;
+    }
+
+    showLogView(false);
 
     const fill = document.getElementById('progressFill');
     fill.style.width = '10%';
     startIndeterminateTimer();
-
-    let result = null;
 
     try{
       switch(key){
@@ -986,9 +1025,6 @@
           break;
         case 'ler':
           result = await callApi('index_dialogues');
-          break;
-        case 'traduzir':
-          result = await callApi('translate');
           break;
         case 'gerar':
           result = await callApi('generate_package');
@@ -1005,6 +1041,36 @@
       stopIndeterminateTimer();
       fill.style.width = result !== null ? '100%' : '0%';
     }
+  }
+
+  // Recebe o progresso real da traducao em andamento (ver
+  // gui_api.py -> Api.translate() -> _on_progress -> self._push)
+  window.onTranslateProgress = function(payload){
+    const fill = document.getElementById('progressFill');
+    if(fill && payload.total > 0){
+      const pct = Math.round((payload.success_count / payload.total) * 100);
+      fill.style.width = pct + '%';
+    }
+    const timerEl = document.getElementById('timerValue');
+    if(timerEl){
+      if(payload.eta_seconds != null){
+        const s = Math.max(0, Math.round(payload.eta_seconds));
+        const m = Math.floor(s/60).toString().padStart(2,'0');
+        const sec = (s%60).toString().padStart(2,'0');
+        timerEl.textContent = `${m}:${sec}`;
+      } else {
+        timerEl.textContent = tr('eta_calculating');
+      }
+    }
+  };
+
+  async function cancelTranslation(){
+    const btn = document.getElementById('cancelTranslateBtn');
+    if(btn){
+      btn.disabled = true;
+      btn.textContent = tr('cancelling_label');
+    }
+    await callApi('cancel_translation');
   }
 
   let timerInterval = null;

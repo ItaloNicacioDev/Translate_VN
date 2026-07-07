@@ -15,6 +15,8 @@ import json
 import logging
 import threading
 import sqlite3
+import time
+import concurrent.futures
 
 # ===========================================================
 # O pywebview executa cada chamada JS -> Python numa thread
@@ -362,10 +364,10 @@ class Api:
 
             try:
 
-                results, interrupted = self.translator.translate_list(
+                results, interrupted = self._translate_with_progress(
                     unique_texts,
-                    progress_callback=_on_progress,
-                    cancel_event=cancel_event
+                    cancel_event=cancel_event,
+                    progress_callback=_on_progress
                 )
 
             finally:
@@ -414,6 +416,192 @@ class Api:
             return {"cancelling": True}
 
         return self._wrap(_cancel, lock=False)
+
+    # ---------------------------------------------------
+    # Harness de traducao com progresso/cancelamento, exclusivo
+    # da GUI. NAO duplica a logica de protecao de tags/aspas nem
+    # a logica de traducao em si -- isso continua 100% dentro de
+    # self.translator.translate(texto), que e' exatamente o mesmo
+    # metodo unitario que core/translator.py (INTOCADO) ja usa
+    # por baixo dos panos no translate_list() do CLI. Aqui so'
+    # reimplementamos a camada de paralelismo/retentativa/
+    # progresso por cima dele, reaproveitando as MESMAS constantes
+    # publicas da classe (MAX_WORKERS, BATCH_SIZE etc.), pra manter
+    # o mesmo comportamento e ritmo que o CLI ja usa.
+    # ---------------------------------------------------
+
+    def _translate_with_progress(self, texts, cancel_event, progress_callback):
+
+        total = len(texts)
+
+        results = [None] * total
+        pending_indices = list(range(total))
+
+        round_number = 0
+        start_time = time.time()
+        success_count = 0
+        interrupted = False
+
+        translator = self.translator
+
+        while pending_indices and round_number <= translator.MAX_RETRY_ROUNDS:
+
+            if round_number > 0:
+
+                wait = translator.RETRY_BACKOFF_SECONDS[
+                    min(round_number - 1, len(translator.RETRY_BACKOFF_SECONDS) - 1)
+                ]
+
+                self.logger.warning(
+                    f"Retentando {len(pending_indices)} linha(s) que "
+                    f"falharam (tentativa {round_number + 1}), "
+                    f"aguardando {wait}s antes de continuar..."
+                )
+
+                time.sleep(wait)
+
+            self.logger.info(
+                f"Traduzindo {len(pending_indices)} texto(s) "
+                f"({translator.MAX_WORKERS} em paralelo)..."
+            )
+
+            still_pending = []
+            completed = 0
+            lock = threading.Lock()
+
+            def process(index):
+                time.sleep(translator.REQUEST_DELAY_SECONDS)
+                translated, ok = translator.translate(texts[index])
+                return index, translated, ok
+
+            executor = concurrent.futures.ThreadPoolExecutor(
+                max_workers=translator.MAX_WORKERS
+            )
+
+            cancelled_this_round = False
+
+            try:
+
+                futures = [
+                    executor.submit(process, index)
+                    for index in pending_indices
+                ]
+
+                for future in concurrent.futures.as_completed(futures):
+
+                    index, translated, ok = future.result()
+
+                    results[index] = (translated, ok)
+
+                    with lock:
+
+                        completed += 1
+
+                        if ok:
+                            success_count += 1
+                        else:
+                            still_pending.append(index)
+
+                        elapsed = time.time() - start_time
+
+                        remaining_texts = total - success_count
+
+                        eta_seconds = None
+
+                        if success_count >= 5 and elapsed > 1:
+
+                            rate = success_count / elapsed
+
+                            eta_seconds = (
+                                remaining_texts / rate if rate > 0 else None
+                            )
+
+                        if progress_callback is not None:
+
+                            try:
+                                progress_callback(
+                                    success_count, total, eta_seconds
+                                )
+                            except Exception:
+                                pass
+
+                        if (
+                            completed % translator.BATCH_SIZE == 0
+                            and completed != len(pending_indices)
+                        ):
+
+                            self.logger.info(
+                                f"Pausa de {translator.BATCH_PAUSE_SECONDS}s "
+                                f"a cada {translator.BATCH_SIZE} linhas, pra "
+                                "evitar bloqueio por uso excessivo..."
+                            )
+
+                            time.sleep(translator.BATCH_PAUSE_SECONDS)
+
+                    if cancel_event is not None and cancel_event.is_set():
+
+                        self.logger.warning(
+                            "Tradução cancelada. Aguardando as tarefas "
+                            "que já estão em andamento terminarem "
+                            "(alguns segundos)..."
+                        )
+
+                        executor.shutdown(wait=True, cancel_futures=True)
+
+                        cancelled_this_round = True
+
+                        interrupted = True
+
+                        break
+
+                if not cancelled_this_round:
+                    executor.shutdown(wait=True)
+
+            except Exception:
+
+                executor.shutdown(wait=True, cancel_futures=True)
+
+                raise
+
+            pending_indices = still_pending
+            round_number += 1
+
+            if interrupted:
+                break
+
+        for index in range(total):
+
+            if results[index] is None:
+                results[index] = (texts[index], False)
+
+        total_elapsed = time.time() - start_time
+
+        failures = sum(1 for r in results if not r[1])
+
+        if interrupted:
+
+            self.logger.warning(
+                f"Tradução cancelada após {int(total_elapsed)}s. "
+                f"{success_count} de {total} traduzidos e já podem ser "
+                "salvos; o restante fica pendente."
+            )
+
+        elif failures:
+
+            self.logger.warning(
+                f"Tradução concluída em {int(total_elapsed)}s com "
+                f"{failures} falha(s) persistente(s) de {total}. Essas "
+                "linhas continuam como pendentes."
+            )
+
+        else:
+
+            self.logger.info(
+                f"Tradução concluída em {int(total_elapsed)}s, todas as "
+                "linhas com sucesso."
+            )
+
+        return results, interrupted
 
     def list_dialogues(self, status: str = None):
 
