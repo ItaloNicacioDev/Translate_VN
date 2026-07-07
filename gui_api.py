@@ -130,24 +130,69 @@ class Api:
         # ia passando de metodo em metodo.
         self._current_project = None
 
-        # Serializa as chamadas vindas do JS: como o pywebview pode
-        # despachar cada clique numa thread diferente, este lock
-        # garante que duas acoes nunca mexam no SQLite ao mesmo
-        # tempo (o sqlite3 aceita multi-thread com
-        # check_same_thread=False, mas nao e' seguro pra escritas
-        # concorrentes sem serializar).
+        # Serializa as chamadas RAPIDAS vindas do JS (CRUD de
+        # projetos/idiomas/dialogos): como o pywebview pode despachar
+        # cada clique numa thread diferente, este lock garante que
+        # duas dessas acoes nunca mexam no SQLite ao mesmo tempo (o
+        # sqlite3 aceita multi-thread com check_same_thread=False,
+        # mas nao e' seguro pra escritas concorrentes sem serializar).
+        #
+        # Acoes LONGAS (extrair, traduzir...) NAO usam este lock,
+        # senao segurariam ele o tempo inteiro e travariam qualquer
+        # outra chamada nesse meio tempo -- inclusive o botao de
+        # cancelar a traducao.
         self._lock = threading.Lock()
+
+        # Preenchido depois de webview.create_window() (ver
+        # gui_main.py), pra podermos empurrar eventos pro JS
+        # (progresso da traducao) mesmo com a janela ainda nao
+        # existindo no momento em que o Api() e' construido.
+        self._window_getter = lambda: None
+
+        # Setado quando uma traducao esta rodando, pra
+        # cancel_translation() poder sinalizar ela.
+        self._translate_cancel_event = None
+
+    def set_window_getter(self, get_window):
+
+        self._window_getter = get_window
+
+    def _push(self, event_name: str, payload: dict):
+        """Empurra um evento assincrono pro JS (fora do fluxo normal
+        de retorno de uma chamada da Api), tipo progresso de uma
+        acao longa em andamento."""
+
+        window = self._window_getter()
+
+        if window is None:
+            return
+
+        message = json.dumps(payload)
+
+        try:
+            window.evaluate_js(
+                f"window.{event_name} && window.{event_name}({message})"
+            )
+        except Exception:
+            pass
 
     # -------------------------------------------------
     # Helper interno: sempre devolve {"ok": bool, ...}
     # pro JS nao precisar lidar com excecao/Promise-reject.
+    #
+    # lock=True (padrao): usado pelas chamadas rapidas de CRUD.
+    # lock=False: usado por acoes longas, que gerenciam elas
+    # mesmas quando precisam tocar o banco (ver translate()).
     # -------------------------------------------------
 
-    def _wrap(self, fn, *args, **kwargs):
+    def _wrap(self, fn, *args, lock=True, **kwargs):
 
         try:
 
-            with self._lock:
+            if lock:
+                with self._lock:
+                    data = fn(*args, **kwargs)
+            else:
                 data = fn(*args, **kwargs)
 
             return {"ok": True, "data": data}
@@ -274,9 +319,9 @@ class Api:
 
         def _translate():
 
-            project = self._require_current_project()
-
-            dialogues = self.project_manager.load_dialogues(project["id"])
+            with self._lock:
+                project = self._require_current_project()
+                dialogues = self.project_manager.load_dialogues(project["id"])
 
             pending = [d for d in dialogues if d["status"] == "pending"]
 
@@ -304,9 +349,28 @@ class Api:
 
                 text_to_indices[text].append(index)
 
-            results, interrupted = self.translator.translate_list(
-                unique_texts
-            )
+            cancel_event = threading.Event()
+            self._translate_cancel_event = cancel_event
+
+            def _on_progress(success_count, total, eta_seconds):
+
+                self._push("onTranslateProgress", {
+                    "success_count": success_count,
+                    "total": total,
+                    "eta_seconds": eta_seconds
+                })
+
+            try:
+
+                results, interrupted = self.translator.translate_list(
+                    unique_texts,
+                    progress_callback=_on_progress,
+                    cancel_event=cancel_event
+                )
+
+            finally:
+
+                self._translate_cancel_event = None
 
             updates = []
 
@@ -325,9 +389,10 @@ class Api:
 
             if updates:
 
-                self.project_manager.update_dialogues_translations_bulk(
-                    updates
-                )
+                with self._lock:
+                    self.project_manager.update_dialogues_translations_bulk(
+                        updates
+                    )
 
             return {
                 "translated": len(updates),
@@ -335,7 +400,20 @@ class Api:
                 "interrupted": interrupted
             }
 
-        return self._wrap(_translate)
+        return self._wrap(_translate, lock=False)
+
+    def cancel_translation(self):
+
+        def _cancel():
+
+            if self._translate_cancel_event is None:
+                raise RuntimeError("Nenhuma traducao em andamento.")
+
+            self._translate_cancel_event.set()
+
+            return {"cancelling": True}
+
+        return self._wrap(_cancel, lock=False)
 
     def list_dialogues(self, status: str = None):
 
