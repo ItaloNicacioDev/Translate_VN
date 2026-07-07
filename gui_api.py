@@ -14,6 +14,34 @@ como `pywebview.api.nome_do_metodo(args)`, retornando uma Promise.
 import json
 import logging
 import threading
+import sqlite3
+
+# ===========================================================
+# O pywebview executa cada chamada JS -> Python numa thread
+# interna diferente da thread principal (e as vezes diferente
+# entre uma chamada e outra). O sqlite3, por padrao, so' deixa
+# uma conexao ser usada na MESMA thread em que foi criada --
+# dai o erro "SQLite objects created in a thread can only be
+# used in that same thread".
+#
+# core/database.py (existente, e ja' funciona perfeitamente no
+# CLI, que roda tudo numa thread so') nao precisa ser alterado:
+# em vez disso, "religamos" aqui o sqlite3.connect para sempre
+# usar check_same_thread=False. Isso precisa acontecer ANTES de
+# qualquer Database() ser criado.
+# ===========================================================
+
+_original_sqlite_connect = sqlite3.connect
+
+
+def _threadsafe_sqlite_connect(*args, **kwargs):
+
+    kwargs.setdefault("check_same_thread", False)
+
+    return _original_sqlite_connect(*args, **kwargs)
+
+
+sqlite3.connect = _threadsafe_sqlite_connect
 
 from core.logger import Logger
 from core.project_manager import ProjectManager
@@ -102,6 +130,14 @@ class Api:
         # ia passando de metodo em metodo.
         self._current_project = None
 
+        # Serializa as chamadas vindas do JS: como o pywebview pode
+        # despachar cada clique numa thread diferente, este lock
+        # garante que duas acoes nunca mexam no SQLite ao mesmo
+        # tempo (o sqlite3 aceita multi-thread com
+        # check_same_thread=False, mas nao e' seguro pra escritas
+        # concorrentes sem serializar).
+        self._lock = threading.Lock()
+
     # -------------------------------------------------
     # Helper interno: sempre devolve {"ok": bool, ...}
     # pro JS nao precisar lidar com excecao/Promise-reject.
@@ -111,7 +147,8 @@ class Api:
 
         try:
 
-            data = fn(*args, **kwargs)
+            with self._lock:
+                data = fn(*args, **kwargs)
 
             return {"ok": True, "data": data}
 
