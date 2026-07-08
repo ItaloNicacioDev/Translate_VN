@@ -15,8 +15,41 @@ import json
 import logging
 import threading
 import sqlite3
+import subprocess
+import sys
 import time
 import concurrent.futures
+
+# ===========================================================
+# core/tool_manager.py e engine/renpy/extractor.py (existentes,
+# intocados) chamam o unrpyc via subprocess.run(). Quando o
+# processo pai tem um console (o CLI), o processo filho so'
+# usa/compartilha esse mesmo console. Mas a GUI roda em modo
+# --windowed, sem console nenhum -- e quando um programa de
+# linha de comando e' chamado a partir dali, o Windows cria uma
+# janela preta de console SO' PRA ELE, do nada.
+#
+# Em vez de alterar tool_manager.py/extractor.py, "religamos"
+# aqui o subprocess.Popen (que e' o que subprocess.run usa por
+# baixo dos panos) pra sempre pedir ao Windows que nao crie essa
+# janela. Isso vale pra qualquer chamada de processo externo
+# feita durante a execucao da GUI, sem tocar no codigo que ja
+# funciona no CLI.
+# ===========================================================
+
+if sys.platform == "win32":
+
+    _original_popen_init = subprocess.Popen.__init__
+
+    def _no_window_popen_init(self, *args, **kwargs):
+
+        flags = kwargs.get("creationflags", 0)
+
+        kwargs["creationflags"] = flags | subprocess.CREATE_NO_WINDOW
+
+        _original_popen_init(self, *args, **kwargs)
+
+    subprocess.Popen.__init__ = _no_window_popen_init
 
 # ===========================================================
 # O pywebview executa cada chamada JS -> Python numa thread
