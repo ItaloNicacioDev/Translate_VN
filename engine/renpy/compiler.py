@@ -32,6 +32,7 @@ Formato gerado (compatível com Ren'Py 6, 7 e 8):
 
 from pathlib import Path
 import re
+import time
 
 from core.logger import Logger
 
@@ -170,10 +171,19 @@ class RenPyCompiler:
         na primeira vez que o jogo é iniciado depois do patch aplicado.
 
         Importante:
-          - Só força o idioma UMA vez (controlado por uma flag salva
-            no persistent). Se o jogo tiver um menu de idiomas nativo
-            e o jogador trocar depois, o patch não fica sobrescrevendo
-            a escolha dele a cada início - não quebra esse menu.
+          - A flag salva no persistent é ÚNICA POR COMPILAÇÃO (leva
+            um timestamp), não fixa por idioma. Isso é proposital:
+            se a flag fosse sempre a mesma (ex: "_translatevn_forced_
+            pt"), um jogador que já tivesse recebido uma versão
+            anterior do patch teria essa flag marcada como True no
+            persistent dele — e reaplicar um patch novo (mesmo que
+            criado do zero) NUNCA forçaria o idioma de novo, deixando
+            o jogo no idioma original mesmo com a tradução instalada
+            corretamente. Com uma flag nova a cada compilação, cada
+            patch gerado sempre força o idioma pelo menos uma vez.
+          - Depois de forçado, o jogador pode trocar de idioma
+            livremente pelo menu do jogo (se existir) sem o patch
+            ficar sobrescrevendo a escolha dele a cada início.
           - Não altera screens, styles ou defines, então não interfere
             em nenhum outro menu do jogo.
           - init 999 roda bem tarde, depois que preferences/idiomas
@@ -181,13 +191,21 @@ class RenPyCompiler:
             exista quando for aplicado.
         """
 
-        flag_name = f"_translatevn_forced_{language_code}"
+        flag_suffix = format(int(time.time()), "x")
+
+        flag_name = (
+            f"_translatevn_forced_{language_code}_{flag_suffix}"
+        )
 
         lines = [
             "# Ativa automaticamente o idioma traduzido gerado pelo",
-            "# Translate VN na primeira execução após aplicar o",
-            "# patch. Não força novamente depois (nao quebra menu",
-            "# de idiomas do proprio jogo, se existir).",
+            "# Translate VN na primeira execução após aplicar este",
+            "# patch especificamente (a flag muda a cada patch novo,",
+            "# entao reaplicar uma traducao sempre forca o idioma de",
+            "# novo, mesmo que uma versao anterior ja tenha sido",
+            "# aplicada nesse mesmo jogo antes). Nao força novamente",
+            "# depois (nao quebra menu de idiomas do proprio jogo,",
+            "# se existir).",
             "",
             "init 999 python:",
             f"    if not getattr(persistent, {flag_name!r}, False):",
