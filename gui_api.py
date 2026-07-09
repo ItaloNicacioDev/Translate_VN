@@ -160,6 +160,8 @@ class Api:
 
         self.translator = Translator()
 
+        self._apply_saved_translation_provider()
+
         # Guarda o projeto (com id resolvido) atualmente aberto na
         # tela de projeto, igual ao "project" que o main.py (CLI)
         # ia passando de metodo em metodo.
@@ -819,6 +821,117 @@ class Api:
     def save_settings(self, data: dict):
 
         return self._wrap(self.project_manager.config.update, data)
+
+    # ===================================================
+    # Provedores de tradução
+    # ===================================================
+
+    def _apply_saved_translation_provider(self):
+        """Aplica no self.translator as preferências de provedor
+        salvas no config.json (chamado ao iniciar a Api, e de novo
+        toda vez que o usuário salva a tela de Provedores). Configs
+        antigas (de antes desse recurso existir) simplesmente não
+        têm essas chaves, então tudo aqui usa .get(..., padrão)."""
+
+        config = self.project_manager.config
+
+        provider = config.get("translation_provider", "google")
+
+        if provider not in Translator.PROVIDERS:
+            provider = "google"
+
+        provider_settings = config.get(
+            "translation_provider_settings", {}
+        ) or {}
+
+        fallback_enabled = config.get(
+            "translation_fallback_enabled", True
+        )
+
+        fallback_order = config.get(
+            "translation_fallback_order",
+            list(Translator.DEFAULT_FALLBACK_ORDER)
+        )
+
+        self.translator.provider_settings = dict(provider_settings)
+        self.translator.provider_id = provider
+        self.translator.fallback_enabled = bool(fallback_enabled)
+        self.translator.set_fallback_order(fallback_order)
+
+    def get_translation_providers(self):
+        """Devolve tudo que a tela de Provedores de Tradução precisa
+        pra se desenhar: lista de provedores disponíveis (com seus
+        campos extras), qual está ativo, as configs salvas de cada
+        um (chaves de API etc.) e as preferências de fallback."""
+
+        def _get():
+
+            config = self.project_manager.config
+
+            return {
+                "providers": [
+                    {"id": provider_id, **meta}
+                    for provider_id, meta in Translator.PROVIDERS.items()
+                ],
+                "active_provider": config.get(
+                    "translation_provider", "google"
+                ),
+                "provider_settings": config.get(
+                    "translation_provider_settings", {}
+                ) or {},
+                "fallback_enabled": config.get(
+                    "translation_fallback_enabled", True
+                ),
+                "fallback_order": config.get(
+                    "translation_fallback_order",
+                    list(Translator.DEFAULT_FALLBACK_ORDER)
+                ),
+            }
+
+        return self._wrap(_get)
+
+    def save_translation_providers(
+        self,
+        active_provider: str,
+        provider_settings: dict,
+        fallback_enabled: bool,
+        fallback_order: list
+    ):
+        """Salva as preferências de provedor de tradução e já
+        aplica na instância ativa do tradutor (efeito imediato,
+        sem precisar reiniciar o app)."""
+
+        def _save():
+
+            if active_provider not in Translator.PROVIDERS:
+                raise ValueError(
+                    f"Provedor de tradução desconhecido: {active_provider}"
+                )
+
+            meta = Translator.PROVIDERS[active_provider]
+
+            has_key = bool(
+                (provider_settings.get(active_provider) or {}).get("api_key")
+            )
+
+            if meta["requires_api_key"] and not has_key:
+                raise ValueError(
+                    f"{meta['label']} exige uma chave de API. Preencha "
+                    "o campo antes de salvar, ou escolha outro provedor."
+                )
+
+            self.project_manager.config.update({
+                "translation_provider": active_provider,
+                "translation_provider_settings": provider_settings,
+                "translation_fallback_enabled": bool(fallback_enabled),
+                "translation_fallback_order": fallback_order,
+            })
+
+            self._apply_saved_translation_provider()
+
+            return {"applied": True}
+
+        return self._wrap(_save)
 
     # ===================================================
     # Utilitario: escolher pasta via dialogo nativo do SO

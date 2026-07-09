@@ -357,6 +357,33 @@ class TranslateVN:
 
         self.translator.set_target_language(target)
 
+        # Aplica o provedor de tradução salvo em Configurações (se o
+        # usuário nunca mexeu nisso, config.get() devolve os mesmos
+        # padrões que o Translator() já usa por conta própria, então
+        # isso não muda nada pra quem não configurou nada).
+        config = self.project_manager.config
+
+        provider = config.get("translation_provider", "google")
+
+        if provider in self.translator.PROVIDERS:
+
+            self.translator.provider_settings = dict(
+                config.get("translation_provider_settings", {}) or {}
+            )
+
+            self.translator.provider_id = provider
+
+            self.translator.fallback_enabled = config.get(
+                "translation_fallback_enabled", True
+            )
+
+            self.translator.set_fallback_order(
+                config.get(
+                    "translation_fallback_order",
+                    list(self.translator.DEFAULT_FALLBACK_ORDER)
+                )
+            )
+
         # Deduplicação: VNs costumam repetir muita linha (falas
         # curtas, nomes, menus). Traduzimos cada texto único uma vez
         # só e aplicamos o resultado em todas as ocorrências, em vez
@@ -856,7 +883,9 @@ class TranslateVN:
             "auto_backup",
             "auto_save",
             "log_level",
-            "unrpyc_path"
+            "unrpyc_path",
+            "translation_provider",
+            "translation_fallback_enabled"
         ]
 
         while True:

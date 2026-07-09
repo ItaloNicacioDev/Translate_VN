@@ -396,6 +396,7 @@
         <button class="pill-btn" onclick="nav('abrir')"><span data-i18n="nav_open">Abrir projeto</span> <span class="arrow">&rarr;</span></button>
         <button class="pill-btn" onclick="nav('listar')"><span data-i18n="nav_list">Listar projetos</span> <span class="arrow">&rarr;</span></button>
         <button class="pill-btn" onclick="nav('idiomas')"><span data-i18n="nav_langs">Idiomas</span> <span class="arrow">&rarr;</span></button>
+        <button class="pill-btn" onclick="nav('providers')"><span data-i18n="nav_providers">Provedores de Tradução</span> <span class="arrow">&rarr;</span></button>
         <button class="pill-btn" onclick="openPluginModal()"><span data-i18n="nav_plugins">Plugins</span> <span class="arrow" id="pluginHomeCount"></span></button>
         <button class="pill-btn" onclick="nav('config')"><span data-i18n="nav_config">Configurações</span> <span class="arrow">&rarr;</span></button>
         <button class="pill-btn ghost" onclick="sairApp()" data-i18n="nav_exit">SAIR</button>
@@ -471,6 +472,34 @@
         <button class="btn primary" onclick="addLang()" data-i18n="add_btn">Adicionar</button>
       </div>
       <p class="field-hint" data-i18n="idiomas_hint">O idioma marcado como padrão é usado automaticamente em novos projetos.</p>
+    </div>
+  </section>
+
+  <!-- PROVEDORES DE TRADUÇÃO -->
+  <section class="screen" id="screen-providers">
+    <div class="subpage">
+      <div class="subpage-head">
+        <button class="back-btn" onclick="nav('home')">&larr;</button>
+        <h2 data-i18n="providers_title">Provedores de Tradução</h2>
+      </div>
+      <p class="field-hint" data-i18n="providers_hint">Escolha qual serviço traduz os diálogos. Clique num provedor pra ativá-lo.</p>
+
+      <div id="providersList"></div>
+
+      <div class="settings-card" style="margin-top:6px;">
+        <div class="switch-row">
+          <div>
+            <p class="row-title" data-i18n="fallback_title">Troca automática em caso de bloqueio</p>
+            <p class="row-desc" data-i18n="fallback_desc">Se o provedor ativo travar por limite de uso (ex: Google após muitas requisições), troca sozinho pro Google/MyMemory, o que estiver disponível.</p>
+          </div>
+          <div class="switch active" id="fallbackSwitch" onclick="toggleProviderFallback()"><div class="knob"></div></div>
+        </div>
+      </div>
+
+      <div class="cta-row">
+        <button class="btn primary" onclick="saveProviders()" data-i18n="save_config_btn">Salvar configurações</button>
+      </div>
+      <div class="confirm-banner" id="providersBanner" data-i18n="config_saved_banner">Configurações salvas.</div>
     </div>
   </section>
 
@@ -629,7 +658,14 @@
       alert_goodbye:'Até a próxima sessão de tradução.',
       review_all:'Todos', review_translated:'Traduzidos', review_reviewed:'Revisados', review_pending:'Pendentes',
       review_save:'Salvar', review_restore:'Restaurar', review_delete:'Excluir', review_empty:'Nenhum diálogo encontrado.',
-      cancel_translate_btn:'Cancelar', eta_calculating:'calculando...', cancelling_label:'Cancelando...'
+      cancel_translate_btn:'Cancelar', eta_calculating:'calculando...', cancelling_label:'Cancelando...',
+      nav_providers:'Provedores de Tradução', providers_title:'Provedores de Tradução',
+      providers_hint:'Escolha qual serviço traduz os diálogos. Clique num provedor pra ativá-lo.',
+      fallback_title:'Troca automática em caso de bloqueio',
+      fallback_desc:'Se o provedor ativo travar por limite de uso (ex: Google após muitas requisições), troca sozinho pro Google/MyMemory, o que estiver disponível.',
+      provider_active:'Provedor ativo', requires_key_badge:'requer chave',
+      field_api_key:'Chave de API', field_base_url:'URL do servidor (opcional)',
+      alert_provider_needs_key:'Esse provedor exige uma chave de API preenchida antes de salvar.'
     },
     en: {
       home_title:'Welcome', home_subtitle:"Your Ren'Py visual novel translation studio.",
@@ -662,7 +698,14 @@
       alert_goodbye:'See you at the next translation session.',
       review_all:'All', review_translated:'Translated', review_reviewed:'Reviewed', review_pending:'Pending',
       review_save:'Save', review_restore:'Restore', review_delete:'Delete', review_empty:'No dialogue found.',
-      cancel_translate_btn:'Cancel', eta_calculating:'calculating...', cancelling_label:'Cancelling...'
+      cancel_translate_btn:'Cancel', eta_calculating:'calculating...', cancelling_label:'Cancelling...',
+      nav_providers:'Translation Providers', providers_title:'Translation Providers',
+      providers_hint:'Choose which service translates the dialogue. Click a provider to activate it.',
+      fallback_title:'Automatic switch on block',
+      fallback_desc:'If the active provider gets blocked from overuse (e.g. Google after too many requests), automatically switch to Google/MyMemory, whichever is available.',
+      provider_active:'Active provider', requires_key_badge:'requires key',
+      field_api_key:'API key', field_base_url:'Server URL (optional)',
+      alert_provider_needs_key:'This provider requires an API key filled in before saving.'
     }
   };
 
@@ -734,6 +777,7 @@
     if(id==='abrir') renderRecentes();
     if(id==='listar') renderProjects();
     if(id==='idiomas') renderLangs();
+    if(id==='providers') loadAndRenderProviders();
     window.scrollTo({top:0,behavior:'smooth'});
   }
 
@@ -868,6 +912,95 @@
     select.innerHTML = state.languages.map(l =>
       `<option value="${l.code}" ${l.code===state.defaultLanguage?'selected':''}>${l.name}</option>`
     ).join('');
+  }
+
+  // ---------- PROVEDORES DE TRADUÇÃO ----------
+  async function loadAndRenderProviders(){
+    const data = await callApi('get_translation_providers');
+    if(!data) return;
+    state.providersData = data;
+    renderProviders();
+  }
+
+  function renderProviders(){
+    const data = state.providersData;
+    if(!data) return;
+
+    const wrap = document.getElementById('providersList');
+
+    wrap.innerHTML = data.providers.map(p => {
+
+      const settings = data.provider_settings[p.id] || {};
+      const active = data.active_provider === p.id;
+
+      const fieldsHtml = (p.fields || []).map(f => {
+        const label = f === 'api_key' ? tr('field_api_key') : tr('field_base_url');
+        const value = settings[f] || '';
+        const type = f === 'api_key' ? 'password' : 'text';
+        return `
+          <div class="field-group" style="margin-top:10px;margin-bottom:0;" onclick="event.stopPropagation()">
+            <label class="field-label">${label}</label>
+            <input class="field-input" type="${type}" data-provider="${p.id}" data-field="${f}"
+              value="${escapeHtml(value)}" oninput="updateProviderField(this)">
+          </div>`;
+      }).join('');
+
+      return `
+        <div class="settings-card" style="cursor:pointer;${active ? 'border-color:var(--accent);' : ''}" onclick="selectProvider('${p.id}')">
+          <div class="switch-row">
+            <div>
+              <p class="row-title">${p.label}${p.requires_api_key ? ` <span class="badge wip">${tr('requires_key_badge')}</span>` : ''}</p>
+              <p class="row-desc">${active ? tr('provider_active') : ''}</p>
+            </div>
+            <div class="switch ${active ? 'active' : ''}"><div class="knob"></div></div>
+          </div>
+          ${fieldsHtml}
+        </div>`;
+
+    }).join('');
+
+    document.getElementById('fallbackSwitch').classList.toggle(
+      'active', !!data.fallback_enabled
+    );
+  }
+
+  function selectProvider(providerId){
+    state.providersData.active_provider = providerId;
+    renderProviders();
+  }
+
+  function updateProviderField(el){
+    const providerId = el.dataset.provider;
+    const field = el.dataset.field;
+    if(!state.providersData.provider_settings[providerId]){
+      state.providersData.provider_settings[providerId] = {};
+    }
+    state.providersData.provider_settings[providerId][field] = el.value;
+  }
+
+  function toggleProviderFallback(){
+    state.providersData.fallback_enabled = !state.providersData.fallback_enabled;
+    document.getElementById('fallbackSwitch').classList.toggle(
+      'active', state.providersData.fallback_enabled
+    );
+  }
+
+  async function saveProviders(){
+    const data = state.providersData;
+
+    const result = await callApi(
+      'save_translation_providers',
+      data.active_provider,
+      data.provider_settings,
+      data.fallback_enabled,
+      data.fallback_order
+    );
+
+    if(result === null) return;
+
+    const banner = document.getElementById('providersBanner');
+    banner.classList.add('show');
+    setTimeout(()=>banner.classList.remove('show'), 2200);
   }
 
   // ---------- CONFIGURAÇÕES ----------

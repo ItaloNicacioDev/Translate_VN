@@ -23,7 +23,20 @@ class ConfigManager:
         # Caminho para o unrpyc.py (não existe pacote pip oficial,
         # então o usuário aponta onde baixou o script do GitHub:
         # https://github.com/CensoredUsername/unrpyc
-        "unrpyc_path": ""
+        "unrpyc_path": "",
+        # Provedor de tradução ativo (ver core/translator.py ->
+        # Translator.PROVIDERS pra lista completa). "google" é o
+        # padrão porque não exige nenhuma chave configurada.
+        "translation_provider": "google",
+        # Se True, troca automaticamente pro próximo provedor da
+        # lista abaixo quando o provedor ativo parece ter bloqueado
+        # as requisições (ex: Google bloqueia depois de um volume
+        # grande de traduções em pouco tempo).
+        "translation_fallback_enabled": True,
+        "translation_fallback_order": ["google", "mymemory"],
+        # Configurações por provedor (principalmente chaves de API),
+        # indexado pelo id do provedor: {"deepl": {"api_key": "..."}}
+        "translation_provider_settings": {}
     }
 
     def __init__(self, config_file: str = "config.json"):
