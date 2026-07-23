@@ -380,6 +380,8 @@ class Translator:
                 "> Provedores de tradução, ou aguarde o limite resetar."
             )
 
+    def set_source_language(self, language: str):
+
         self.source_language = language
 
         self.logger.info(
@@ -512,7 +514,23 @@ class Translator:
 
                 time.sleep(self.REQUEST_DELAY_SECONDS)
 
-                translated, ok = self.translate(texts[index])
+                try:
+
+                    translated, ok = self.translate(texts[index])
+
+                except Exception as error:
+
+                    # Qualquer erro inesperado (ex: bug interno,
+                    # provedor mal configurado) NUNCA deve derrubar
+                    # a tradução inteira - só marca essa linha
+                    # específica como falha, pra ser retentada nas
+                    # próximas rodadas como qualquer outra falha
+                    # normal de tradução.
+                    self.logger.error(
+                        f"Erro inesperado traduzindo linha: {error}"
+                    )
+
+                    return index, texts[index], False
 
                 return index, translated, ok
 
