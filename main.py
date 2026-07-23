@@ -122,7 +122,7 @@ class TranslateVN:
                 name=name,
                 engine=info["engine"],
                 version=info["version"],
-                game_path=game_path
+                game_path=info["root_path"]
             )
 
         except FileExistsError as error:
