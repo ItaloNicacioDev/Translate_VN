@@ -730,8 +730,6 @@ class Api:
 
             project = self._require_current_project()
 
-            from pathlib import Path
-
             exports_folder = self.project_manager.get_exports_folder(
                 project["name"]
             )
@@ -741,11 +739,15 @@ class Api:
                     "Nenhum pacote gerado ainda. Gere o pacote primeiro."
                 )
 
-            game_folder = Path(project["game_path"]) / "game"
+            # Usa o detector para resolver o game_folder real,
+            # independente de o usuário ter apontado para a pasta
+            # raiz do jogo ou diretamente para a pasta 'game'.
+            info = self.detector.detect(project["game_path"])
+            game_folder = info["game_folder"]
 
             self.patcher.apply_patch(
                 str(exports_folder),
-                str(game_folder),
+                game_folder,
                 create_backup=bool(create_backup)
             )
 
@@ -759,16 +761,17 @@ class Api:
 
             project = self._require_current_project()
 
-            from pathlib import Path
+            # Mesmo fix do apply_translation: resolve o game_folder
+            # real via detector em vez de assumir /game hardcoded.
+            info = self.detector.detect(project["game_path"])
+            game_folder = info["game_folder"]
 
-            game_folder = Path(project["game_path"]) / "game"
-
-            if not self.patcher.is_patched(str(game_folder)):
+            if not self.patcher.is_patched(game_folder):
                 raise RuntimeError(
                     "Este jogo nao possui traducao aplicada."
                 )
 
-            removed = self.patcher.remove_patch(str(game_folder))
+            removed = self.patcher.remove_patch(game_folder)
 
             return {"removed": removed}
 
