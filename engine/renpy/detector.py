@@ -29,9 +29,33 @@ class RenPyDetector(BaseEngine):
         game_folder = game_path / "game"
 
         if not game_folder.exists():
-            raise FileNotFoundError(
-                "A pasta 'game' não foi encontrada."
-            )
+
+            # O usuário pode ter selecionado diretamente a pasta
+            # 'game' (em vez da pasta raiz do jogo, que é a que
+            # contém 'game' dentro). Nesse caso, `game_path/"game"`
+            # nunca vai existir (seria .../game/game). Detectamos
+            # esse caso: se o próprio caminho selecionado se chama
+            # "game" e tem cara de pasta de jogo Ren'Py (contém
+            # scripts .rpy/.rpyc ou o padrão de pasta "images"/
+            # "audio"), usamos ele mesmo como game_folder e subimos
+            # um nível para achar a pasta raiz.
+            if game_path.name.lower() == "game" and (
+                any(game_path.glob("*.rpy"))
+                or any(game_path.glob("*.rpyc"))
+                or any(game_path.rglob("*.rpy"))
+                or any(game_path.rglob("*.rpyc"))
+            ):
+
+                game_folder = game_path
+                game_path = game_path.parent
+
+            else:
+
+                raise FileNotFoundError(
+                    "A pasta 'game' não foi encontrada. Selecione a "
+                    "pasta RAIZ do jogo (a que contém a pasta "
+                    "'game' dentro), não a pasta 'game' em si."
+                )
 
         info = {
 
