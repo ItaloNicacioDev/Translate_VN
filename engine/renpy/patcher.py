@@ -70,6 +70,47 @@ class RenPyPatcher:
                 backup_folder=str(backup_folder)
             )
 
+        # Conjunto de destinos que VÃO existir depois desta
+        # aplicação - usado para não apagar o que estamos prestes a
+        # colocar no lugar.
+        destinations_this_run = {
+            game / file.relative_to(translated)
+            for file in files_to_copy
+        }
+
+        # Limpeza PROATIVA: remove TODO arquivo "*__translatevn_*.rpy"
+        # que já esteja na pasta do jogo (de QUALQUER rodada
+        # anterior), mesmo que esta rodada não gere um arquivo novo
+        # para aquele mesmo script de origem.
+        #
+        # Antes, essa limpeza só rodava dentro do loop de cópia e só
+        # comparava com o nome do arquivo desta mesma rodada - então,
+        # se um script não fosse retraduzido/recompilado numa
+        # aplicação específica (ex: já estava 100% traduzido e não
+        # mudou), o arquivo de tradução antigo dele nunca era
+        # removido e ficava acumulando a cada "aplicar patch",
+        # eventualmente causando nomes empilhados (ex:
+        # "arquivo__translatevn_pt__translatevn_pt.rpy") e o Ren'Py
+        # travando com "A translation for ... already exists" por
+        # ter a mesma fala definida em dois arquivos diferentes.
+        removed_stale = 0
+
+        for old_file in game.rglob("*__translatevn_*.rpy"):
+
+            if old_file in destinations_this_run:
+                continue
+
+            old_file.unlink()
+
+            removed_stale += 1
+
+        if removed_stale:
+
+            self.logger.info(
+                f"{removed_stale} arquivo(s) de tradução antigos "
+                "removidos do jogo antes de aplicar o novo patch."
+            )
+
         copied = 0
 
         for file in files_to_copy:
@@ -80,34 +121,6 @@ class RenPyPatcher:
                 parents=True,
                 exist_ok=True
             )
-
-            # Remove traduções antigas do mesmo arquivo de origem
-            # que já estejam no jogo (ex: de uma compilação
-            # anterior com outro código de idioma), pra não deixar
-            # duplicadas junto com a nova (ex: "..._pt.rpy" e
-            # "..._pt_pt.rpy" para o mesmo script).
-            if "__translatevn_" in destination.stem:
-
-                base_stem = destination.stem.split(
-                    "__translatevn_"
-                )[0]
-
-                old_pattern = (
-                    base_stem
-                    + "__translatevn_*"
-                    + destination.suffix
-                )
-
-                for old_file in destination.parent.glob(old_pattern):
-
-                    if old_file != destination and old_file.is_file():
-
-                        old_file.unlink()
-
-                        self.logger.info(
-                            f"Tradução antiga removida do jogo: "
-                            f"{old_file.name}"
-                        )
 
             shutil.copy2(
                 file,
