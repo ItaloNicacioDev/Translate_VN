@@ -135,10 +135,7 @@ class RenPyParser:
 
         if line.startswith('"'):
 
-            result = re.findall(
-                r'"(.*?)"',
-                line
-            )
+            result = self._find_all_quoted_strings(line)
 
             if result:
 
@@ -177,14 +174,10 @@ class RenPyParser:
                     # outro modificador com aspas próprias, e essas
                     # não são diálogo.
 
-                    result = re.match(
-                        r'"(.*?)"',
-                        line[quote_index:]
+                    candidate = self._scan_quoted_string(
+                        line,
+                        quote_index
                     )
-
-                    if result:
-
-                        candidate = result.group(1)
 
         if candidate is None:
 
@@ -195,6 +188,129 @@ class RenPyParser:
             return None
 
         return candidate
+
+    # ------------------------------
+
+    def _scan_quoted_string(self, line: str, start_index: int):
+        """Lê a string entre aspas que começa em line[start_index]
+        (que deve ser um caractere '"'), tratando `\\"` e `\\\\`
+        como sequências de escape - ou seja, uma aspas escapada
+        DENTRO da fala não fecha a string.
+
+        Isso é essencial porque muitos jogos escrevem falas com
+        aspas literais dentro do diálogo para indicar discurso
+        direto, ex:
+
+            p "\\"Sabes que no viene ni un alma por aquí.\\""
+
+        Um regex simples como `"(.*?)"` fecha no primeiro `\\"`
+        que encontra (interpretando a barra invertida como texto
+        comum e a aspas seguinte como o fim da string), retornando
+        só um caractere de barra invertida como "diálogo" - fazendo
+        a fala inteira ser descartada da tradução.
+
+        Retorna o conteúdo JÁ DESESCAPADO (`\\"` -> `"`,
+        `\\\\` -> `\\`), que é o valor real que o Ren'Py usa em
+        tempo de execução para essa string - o mesmo valor que
+        `RenPyCompiler._escape_renpy_string` espera receber para
+        regerar a linha `old "..."` idêntica ao original.
+        """
+
+        length = len(line)
+
+        if start_index >= length or line[start_index] != '"':
+            return None
+
+        buffer = []
+        i = start_index + 1
+
+        while i < length:
+
+            char = line[i]
+
+            if char == "\\" and i + 1 < length and line[i + 1] in ('"', "\\"):
+
+                # Escape válido: inclui o caractere escapado como
+                # texto literal e pula os DOIS caracteres (barra +
+                # caractere), sem fechar a string.
+                buffer.append(line[i + 1])
+                i += 2
+                continue
+
+            if char == '"':
+
+                # Aspas de verdade, não escapada: fim da string.
+                return "".join(buffer)
+
+            buffer.append(char)
+            i += 1
+
+        # Nunca fechou - string malformada/incompleta na linha.
+        return None
+
+    # ------------------------------
+
+    def _find_all_quoted_strings(self, line: str):
+        """Encontra TODAS as strings entre aspas de nível superior
+        na linha (sem entrar em recursão dentro de uma string já
+        aberta), na ordem em que aparecem, já desescapadas.
+        Usada para o caso `"Texto"` e `"Nome" "Texto"`, onde
+        precisamos da ÚLTIMA string encontrada."""
+
+        results = []
+
+        length = len(line)
+        i = 0
+
+        while i < length:
+
+            if line[i] == '"':
+
+                content = self._scan_quoted_string(line, i)
+
+                if content is None:
+                    # Aspas sem fechamento correspondente: para de
+                    # procurar, o resto da linha não é confiável.
+                    break
+
+                results.append(content)
+
+                # Avança para depois da aspas de fechamento. Como
+                # não guardamos o índice de fim em _scan_quoted_string,
+                # recalculamos aqui percorrendo os mesmos caracteres.
+                i = self._index_after_quoted_string(line, i)
+
+            else:
+
+                i += 1
+
+        return results
+
+    # ------------------------------
+
+    def _index_after_quoted_string(self, line: str, start_index: int) -> int:
+        """Retorna o índice logo após a aspas de fechamento da
+        string que começa em start_index, considerando `\\"` e
+        `\\\\` como escapes (mesma lógica de _scan_quoted_string,
+        mas devolvendo a posição em vez do conteúdo)."""
+
+        length = len(line)
+        i = start_index + 1
+
+        while i < length:
+
+            char = line[i]
+
+            if char == "\\" and i + 1 < length and line[i + 1] in ('"', "\\"):
+                i += 2
+                continue
+
+            if char == '"':
+                return i + 1
+
+            i += 1
+
+        return length
 
     # ------------------------------
 
