@@ -147,15 +147,44 @@ class RenPyParser:
         else:
 
             # tag "Texto"   (ex: e "Olá!")
+            #
+            # OBS: a tag quase sempre vem acompanhada de um ou mais
+            # atributos de expressão/pose antes da fala (ex:
+            # `e happy "Olá!"`, `m surprised confused "O quê?!"`),
+            # e pode ter modificadores depois da fala (ex:
+            # `e "Olá!" with dissolve`, `e "Olá!" (voice="v1.ogg")`).
+            # Por isso não podemos exigir "tag + espaço + aspas" logo
+            # no início nem "aspas" logo no fim da linha - só
+            # validamos que tudo ANTES da primeira aspa é uma
+            # sequência de identificadores (tag + atributos), sem
+            # operadores como "=" (o que descartaria atribuições tipo
+            # `mood = "happy"`).
 
-            result = re.search(
-                r'^[a-zA-Z_][a-zA-Z0-9_]*\s+"(.*?)"$',
-                line
-            )
+            quote_index = line.find('"')
 
-            if result:
+            if quote_index != -1:
 
-                candidate = result.group(1)
+                prefix = line[:quote_index].strip()
+
+                if prefix and re.fullmatch(
+                    r'[a-zA-Z_][a-zA-Z0-9_]*(?:\s+[a-zA-Z_][a-zA-Z0-9_]*)*',
+                    prefix
+                ):
+
+                    # Pegamos a PRIMEIRA aspa logo após a tag/atributos
+                    # (a fala em si), não a última da linha - depois
+                    # da fala pode vir `(voice="arquivo.ogg")` ou
+                    # outro modificador com aspas próprias, e essas
+                    # não são diálogo.
+
+                    result = re.match(
+                        r'"(.*?)"',
+                        line[quote_index:]
+                    )
+
+                    if result:
+
+                        candidate = result.group(1)
 
         if candidate is None:
 
