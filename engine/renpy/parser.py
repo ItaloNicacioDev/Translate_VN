@@ -351,11 +351,27 @@ class RenPyParser:
 
     # ------------------------------
 
+    # Palavras-chave de UI do Ren'Py que aparecem como strings
+    # isoladas em screens.rpy e similares - não são falas de
+    # personagens e não devem ser traduzidas pelo sistema de
+    # `translate strings:` (o jogo já tem seu próprio sistema
+    # de tradução de UI separado).
+    UI_KEYWORDS = {
+        "window", "namebox", "input", "choice", "quick",
+        "navigation", "vertical", "about", "say", "slot",
+        "page", "[page]", "subtitle", "radio", "check",
+        "slider", "help", "history", "confirm", "skip",
+        "notify", "medium", "touch", "small", "bar",
+        "button", "frame", "hbox", "vbox", "grid", "fixed",
+        "label", "text", "image", "viewport", "scrollbar",
+        "side", "timer", "transform", "menu", "screen",
+    }
+
     def _looks_like_asset_or_identifier(self, text: str) -> bool:
         """Heurística pra descartar coisas que batem no formato
         regex de diálogo mas não são fala de verdade: caminhos de
-        arquivo de asset, tags de imagem, nomes de tela/transição
-        etc."""
+        arquivo de asset, tags de imagem, nomes de tela/transição,
+        códigos de cor hex, palavras-chave de UI etc."""
 
         stripped = text.strip()
 
@@ -380,7 +396,34 @@ class RenPyParser:
             and " " not in stripped
             and re.fullmatch(r"[a-zA-Z0-9_\-]+", stripped)
         ):
+            return True
 
+        # Código de cor hexadecimal: #RGB, #RRGGBB, #RRGGBBAA
+        # (com ou sem canal alpha). Aparecem em screens.rpy como
+        # valores de cor de UI - não são diálogo.
+        if re.fullmatch(r"#[0-9a-fA-F]{3,8}", stripped):
+            return True
+
+        # Palavras-chave de UI do Ren'Py isoladas (sem espaço).
+        # Aparecem como strings únicas em screens.rpy para nomear
+        # estilos e componentes de interface.
+        if stripped.lower() in self.UI_KEYWORDS:
+            return True
+
+        # Palavra única sem espaço nem pontuação de frase — quase
+        # sempre é um identificador de código (nome de variável,
+        # tag de imagem, nome de tela, nome de idioma etc.),
+        # não diálogo real. "English", "Español", "Português"
+        # são exemplos comuns em menus de seleção de idioma.
+        # O limite de 25 chars evita descartar frases curtas
+        # que não tenham pontuação mas sejam texto real.
+        if (
+            " " not in stripped
+            and not any(c in stripped for c in ".,!?;:()[]{}'\"-…–—")
+            and len(stripped) <= 25
+            and re.fullmatch(r"[\w]+", stripped, re.UNICODE)
+            and "#" not in stripped
+        ):
             return True
 
         return False
