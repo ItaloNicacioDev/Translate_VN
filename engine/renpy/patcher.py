@@ -7,6 +7,7 @@ em jogos Ren'Py.
 
 from pathlib import Path
 import shutil
+import re
 
 from core.logger import Logger
 from core.backup import BackupManager
@@ -26,7 +27,8 @@ class RenPyPatcher:
         self,
         translated_folder: str,
         game_folder: str,
-        create_backup: bool = True
+        create_backup: bool = True,
+        language_code: str = None
     ):
 
         translated = Path(translated_folder)
@@ -49,19 +51,48 @@ class RenPyPatcher:
             file for file in translated.rglob("*") if file.is_file()
         ]
 
+        # Detecta o código de idioma a partir do nome dos arquivos
+        # gerados (ex: "script__translatevn_pt.rpy" → "pt"),
+        # caso não seja passado explicitamente.
+        if language_code is None:
+
+            for file in files_to_copy:
+
+                match = re.search(
+                    r"__translatevn_([a-z]+)\.rpy$",
+                    file.name
+                )
+
+                if match:
+                    language_code = match.group(1)
+                    break
+
+        language_code = language_code or "pt"
+
+        # O arquivo zzz_force_language vai para a raiz do game/
+        # (precisa ser carregado antes de tudo, sem estar dentro
+        # de tl/, para funcionar corretamente).
+        # Os demais vão para game/tl/<idioma>/, mantendo a
+        # estrutura de subpastas relativa à pasta translated.
+        # Isso é obrigatório para o Ren'Py reconhecer os blocos
+        # `translate <idioma> strings:` e aplicar a tradução.
+        tl_folder = game / "tl" / language_code
+
+        def _destination(file: Path) -> Path:
+
+            if file.name.startswith("zzz_force_language"):
+                return game / file.name
+
+            return tl_folder / file.relative_to(translated)
+
         if create_backup:
 
             backup_folder = game / "translatevn_backups"
 
-            # Só faz backup dos arquivos que já existem no jogo e
-            # vão ser sobrescritos - não do jogo inteiro. A tradução
-            # normalmente só adiciona arquivos novos (ex: script_pt.
-            # rpy), então na maioria das vezes isso nem vai ter nada
-            # pra fazer backup.
             files_that_would_be_overwritten = [
-                (game / file.relative_to(translated))
+                _destination(file)
                 for file in files_to_copy
-                if (game / file.relative_to(translated)).exists()
+                if _destination(file).exists()
             ]
 
             self.backup.create_selective_backup(
@@ -70,32 +101,17 @@ class RenPyPatcher:
                 backup_folder=str(backup_folder)
             )
 
-        # Conjunto de destinos que VÃO existir depois desta
-        # aplicação - usado para não apagar o que estamos prestes a
-        # colocar no lugar.
+        # Conjunto de destinos desta rodada — usado para não apagar
+        # o que estamos prestes a colocar no lugar.
         destinations_this_run = {
-            game / file.relative_to(translated)
-            for file in files_to_copy
+            _destination(file) for file in files_to_copy
         }
 
-        # Limpeza PROATIVA: remove TODO arquivo "*__translatevn_*.rpy"
-        # que já esteja na pasta do jogo (de QUALQUER rodada
-        # anterior), mesmo que esta rodada não gere um arquivo novo
-        # para aquele mesmo script de origem.
-        #
-        # Antes, essa limpeza só rodava dentro do loop de cópia e só
-        # comparava com o nome do arquivo desta mesma rodada - então,
-        # se um script não fosse retraduzido/recompilado numa
-        # aplicação específica (ex: já estava 100% traduzido e não
-        # mudou), o arquivo de tradução antigo dele nunca era
-        # removido e ficava acumulando a cada "aplicar patch",
-        # eventualmente causando nomes empilhados (ex:
-        # "arquivo__translatevn_pt__translatevn_pt.rpy") e o Ren'Py
-        # travando com "A translation for ... already exists" por
-        # ter a mesma fala definida em dois arquivos diferentes.
+        # Limpeza PROATIVA: remove arquivos de tradução antigos
+        # tanto na raiz do game/ quanto dentro de tl/.
         removed_stale = 0
 
-        for old_file in game.rglob("*__translatevn_*.rpy"):
+        for old_file in list(game.rglob("*__translatevn_*.rpy")):
 
             if old_file in destinations_this_run:
                 continue
@@ -115,7 +131,7 @@ class RenPyPatcher:
 
         for file in files_to_copy:
 
-            destination = game / file.relative_to(translated)
+            destination = _destination(file)
 
             destination.parent.mkdir(
                 parents=True,
