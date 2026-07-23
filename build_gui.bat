@@ -77,6 +77,8 @@ set "ISCC="
 if exist "%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe" set "ISCC=%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe"
 if not defined ISCC if exist "%ProgramFiles%\Inno Setup 6\ISCC.exe" set "ISCC=%ProgramFiles%\Inno Setup 6\ISCC.exe"
 if not defined ISCC if exist "%LocalAppData%\Programs\Inno Setup 6\ISCC.exe" set "ISCC=%LocalAppData%\Programs\Inno Setup 6\ISCC.exe"
+if not defined ISCC if exist "E:\Documents\Inno Setup 6\ISCC.exe" set "ISCC=E:\Documents\Inno Setup 6\ISCC.exe"
+
 
 if not defined ISCC (
     echo ERRO: Inno Setup nao encontrado.
