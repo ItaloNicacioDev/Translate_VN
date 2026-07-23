@@ -26,6 +26,19 @@ class RenPyParser:
         "else", "while", "for", "pause", "voice", "nvl", "add",
         "use", "translate", "config", "persistent", "renpy",
         "define_music", "text",
+        # "old" e "new" são as palavras-chave do próprio bloco
+        # `translate <idioma> strings:` que ESTE app gera (ver
+        # compiler.py). Sem essa exclusão, se um arquivo de
+        # tradução já gerado numa rodada anterior for varrido de
+        # novo (ex: porque ele ainda está na pasta do jogo e foi
+        # recopiado numa nova extração), as linhas `old "..."` e
+        # `new "..."` são lidas como se fossem falas de personagens
+        # chamados "old"/"new" - reintroduzindo o texto original E
+        # a tradução já feita como "diálogos novos pendentes". Isso
+        # gera arquivos de tradução empilhados a cada rodada (ex:
+        # "arquivo__translatevn_pt__translatevn_pt.rpy") e o Ren'Py
+        # acaba travando com "A translation for ... already exists".
+        "old", "new",
     }
 
     # Extensões de arquivo comuns em jogos Ren'Py - se o texto
@@ -52,9 +65,33 @@ class RenPyParser:
 
         project = Path(project_path)
 
+        skipped_own_output = 0
+
         for file in project.rglob("*.rpy"):
 
+            # Nunca reprocessa um arquivo que o PRÓPRIO Translate VN
+            # já gerou em uma rodada anterior (ver compiler.py -
+            # esses arquivos sempre têm "__translatevn_" no nome).
+            # Se esse arquivo ainda estiver na pasta do jogo/projeto
+            # (ex: porque uma extração anterior o copiou de volta),
+            # escaneá-lo de novo faria o parser ler as linhas
+            # `old "..."` / `new "..."` como se fossem falas novas,
+            # reintroduzindo texto já traduzido como "pendente" e
+            # empilhando arquivos de tradução a cada rodada.
+            if "__translatevn_" in file.stem:
+
+                skipped_own_output += 1
+                continue
+
             self.parse_file(file)
+
+        if skipped_own_output:
+
+            self.logger.info(
+                f"{skipped_own_output} arquivo(s) de tradução já "
+                "gerados pelo próprio Translate VN foram ignorados "
+                "na varredura (não são conteúdo original)."
+            )
 
         self.logger.info(
             f"{len(self.dialogues)} diálogos encontrados."
