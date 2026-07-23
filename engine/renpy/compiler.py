@@ -6,28 +6,24 @@ Responsável por gerar os arquivos traduzidos.
 Usa o sistema de tradução NATIVO do Ren'Py (bloco `translate <idioma>
 strings:`) em vez de copiar e modificar os scripts originais.
 
-Por quê isso é importante:
-  - A abordagem anterior (copiar o arquivo inteiro e fazer replace)
-    era destrutiva: qualquer texto coincidente em `define`, `style`,
-    `screen` ou `image` podia ser substituído acidentalmente,
-    corrompendo definições de layout, personagens e UI do jogo.
-  - O arquivo copiado incluía `style`, `define`, `screen` etc., e
-    quando esses blocos eram ligeiramente alterados ou não carregados
-    na ordem certa, causavam erros como "Unknown layout: legenda".
-  - Com o bloco `translate`, o Ren'Py sobrepõe APENAS o texto dos
-    diálogos — o restante do script original permanece intacto.
-
 Formato gerado (compatível com Ren'Py 6, 7 e 8):
 
-    # Arquivo: script.rpy  linha 42
-    translate portuguese strings:
+    translate pt strings:
+
         old "Texto original"
         new "Texto traduzido"
 
-    # Arquivo: outro.rpy  linha 17
-    translate portuguese strings:
         old "Outro texto"
         new "Outra tradução"
+
+Cada arquivo de origem gera um único bloco `translate strings:`
+contendo todos os pares old/new daquele arquivo. Isso é o formato
+correto que o Ren'Py espera — múltiplos blocos com o mesmo idioma
+no mesmo namespace causam conflito.
+
+Os arquivos gerados vão para game/tl/<idioma>/ com o mesmo nome
+do script original (sem sufixo extra), espelhando a estrutura que
+o Ren'Py usa nativamente (ex: game/tl/English/script.rpy).
 """
 
 from pathlib import Path
@@ -51,8 +47,7 @@ class RenPyCompiler:
         pt-BR, PT_pt, pt-br...) só as letras iniciais em
         minúsculo (ex: "pt"). Isso evita que pequenas diferenças
         de formatação no código do idioma gerem arquivos
-        traduzidos duplicados (ex: "..._pt.rpy" e
-        "..._pt-BR.rpy" coexistindo para o mesmo arquivo)."""
+        traduzidos duplicados."""
 
         if not language_code:
             return "pt"
@@ -87,14 +82,13 @@ class RenPyCompiler:
     ):
         """Gera um arquivo de tradução por script de origem,
         usando o formato `translate <idioma> strings:` nativo
-        do Ren'Py. Apenas diálogos com tradução preenchida são
-        incluídos.
+        do Ren'Py com um único bloco por arquivo contendo todos
+        os pares old/new.
 
-        O Ren'Py trata o espaço de nomes `translate strings` como
-        GLOBAL por idioma — uma mesma string `old` não pode aparecer
-        em dois arquivos .rpy diferentes. Por isso o `seen_originals`
-        é criado aqui e compartilhado entre todos os arquivos gerados
-        nesta compilação."""
+        Os arquivos são nomeados igual ao original (sem sufixo
+        __translatevn_) e vão para output_folder mantendo a
+        estrutura de subpastas — o patcher os coloca em
+        game/tl/<idioma>/ onde o Ren'Py os encontra."""
 
         output = Path(output_folder)
 
@@ -144,9 +138,8 @@ class RenPyCompiler:
                 generated.append(result)
 
         # Gera o arquivo que força o jogo a carregar no idioma
-        # traduzido. Sem isso, o Ren'Py mantém o idioma original
-        # (None) e os blocos "translate ... strings:" acima nunca
-        # são exibidos, mesmo estando corretos e presentes no jogo.
+        # traduzido. Fica na raiz do output (vai para game/ direto,
+        # não dentro de tl/).
         force_lang_file = self._generate_force_language_file(
             output, language_code
         )
@@ -170,25 +163,8 @@ class RenPyCompiler:
         """Cria um script que ativa o idioma traduzido automaticamente
         na primeira vez que o jogo é iniciado depois do patch aplicado.
 
-        Importante:
-          - A flag salva no persistent é ÚNICA POR COMPILAÇÃO (leva
-            um timestamp), não fixa por idioma. Isso é proposital:
-            se a flag fosse sempre a mesma (ex: "_translatevn_forced_
-            pt"), um jogador que já tivesse recebido uma versão
-            anterior do patch teria essa flag marcada como True no
-            persistent dele — e reaplicar um patch novo (mesmo que
-            criado do zero) NUNCA forçaria o idioma de novo, deixando
-            o jogo no idioma original mesmo com a tradução instalada
-            corretamente. Com uma flag nova a cada compilação, cada
-            patch gerado sempre força o idioma pelo menos uma vez.
-          - Depois de forçado, o jogador pode trocar de idioma
-            livremente pelo menu do jogo (se existir) sem o patch
-            ficar sobrescrevendo a escolha dele a cada início.
-          - Não altera screens, styles ou defines, então não interfere
-            em nenhum outro menu do jogo.
-          - init 999 roda bem tarde, depois que preferences/idiomas
-            já foram registrados pelo jogo, garantindo que o idioma
-            exista quando for aplicado.
+        Fica marcado com __translatevn_ no nome para o patcher
+        reconhecê-lo e copiá-lo para a raiz do game/ (não para tl/).
         """
 
         flag_suffix = format(int(time.time()), "x")
@@ -250,11 +226,11 @@ class RenPyCompiler:
         language_code: str = "pt",
         global_seen: set = None
     ):
-        """Gera um único arquivo .rpy com blocos translate para
-        todos os diálogos traduzidos do script de origem.
+        """Gera um único arquivo .rpy com um bloco translate strings:
+        contendo todos os pares old/new do script de origem.
 
-        global_seen: set compartilhado entre todos os arquivos da
-        compilação para deduplicar strings cross-file."""
+        O arquivo é nomeado igual ao original (sem sufixo __translatevn_)
+        para que o Ren'Py o encontre corretamente em game/tl/<idioma>/."""
 
         if global_seen is None:
             global_seen = set()
@@ -279,49 +255,14 @@ class RenPyCompiler:
 
         destination_folder.mkdir(parents=True, exist_ok=True)
 
-        # Nome do arquivo de saída com sufixo incomum para não
-        # colidir com arquivos que o jogo já possua.
-        output_name = (
-            source.stem
-            + f"__translatevn_{language_code}"
-            + source.suffix
-        )
+        # Nome do arquivo igual ao original — o Ren'Py resolve
+        # traduções pelo nome do arquivo dentro de tl/<idioma>/
+        output_name = source.name
 
         destination = destination_folder / output_name
 
-        # Remove traduções antigas do mesmo arquivo de origem
-        # (de execuções anteriores com outro código de idioma).
-        old_pattern = (
-            source.stem
-            + "__translatevn_*"
-            + source.suffix
-        )
-
-        for old_file in destination_folder.glob(old_pattern):
-
-            if old_file != destination:
-
-                old_file.unlink()
-
-                self.logger.info(
-                    f"Tradução antiga removida: {old_file.name}"
-                )
-
-        # Monta o conteúdo do arquivo de tradução
-        lines = []
-
-        lines.append(
-            "# Tradução gerada pelo Translate VN"
-        )
-        lines.append(
-            f"# Arquivo de origem: {source.name}"
-        )
-        lines.append("")
-
-        # Usa o set global passado pelo compile() para deduplicar
-        # tanto dentro deste arquivo quanto entre arquivos diferentes.
-        # Cada string `old` deve ser única em todo o jogo.
-        written = 0
+        # Monta os pares old/new, todos dentro de um único bloco
+        pairs = []
 
         for dialogue in sorted(dialogues, key=lambda d: d.get("line", 0)):
 
@@ -332,8 +273,6 @@ class RenPyCompiler:
             if not original or not translated:
                 continue
 
-            # Pula se esse texto original já foi incluído antes
-            # (neste arquivo ou em qualquer arquivo anterior)
             if original in global_seen:
                 self.logger.info(
                     f"Duplicata ignorada (linha {line_num}): "
@@ -346,26 +285,26 @@ class RenPyCompiler:
             original_escaped = self._escape_renpy_string(original)
             translated_escaped = self._escape_renpy_string(translated)
 
-            lines.append(
-                f"# linha {line_num}"
-            )
-            lines.append(
-                f"translate {language_code} strings:"
-            )
-            lines.append(
-                f'    old "{original_escaped}"'
-            )
-            lines.append(
+            pairs.append(
+                f"    # linha {line_num}\n"
+                f'    old "{original_escaped}"\n'
                 f'    new "{translated_escaped}"'
             )
-            lines.append("")
 
-            written += 1
-
-        if written == 0:
-            # Só o cabeçalho, nenhuma tradução real — não gera
-            # arquivo vazio.
+        if not pairs:
             return None
+
+        # Um único bloco translate strings: por arquivo
+        lines = [
+            "# Tradução gerada pelo Translate VN",
+            f"# Arquivo de origem: {source.name}",
+            "",
+            f"translate {language_code} strings:",
+            "",
+        ]
+
+        lines.append("\n\n".join(pairs))
+        lines.append("")
 
         destination.write_text(
             "\n".join(lines),
@@ -374,14 +313,13 @@ class RenPyCompiler:
 
         self.logger.info(
             f"{output_name} criado "
-            f"({written} entradas únicas de {len(dialogues)} diálogos)."
+            f"({len(pairs)} entradas únicas de {len(dialogues)} diálogos)."
         )
 
         return destination
 
     # -------------------------------------------------
-    # Mantido para compatibilidade com chamadas externas
-    # que usavam compile_file diretamente.
+    # Mantido para compatibilidade com chamadas externas.
     # -------------------------------------------------
 
     def compile_file(
