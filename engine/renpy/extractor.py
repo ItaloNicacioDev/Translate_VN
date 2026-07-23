@@ -67,6 +67,7 @@ class RenPyExtractor:
 
         copied = 0
         skipped_tl = 0
+        skipped_own_output = 0
 
         for file in game_folder.rglob("*.rpy"):
 
@@ -79,6 +80,17 @@ class RenPyExtractor:
             if "tl" in file.relative_to(game_folder).parts[:-1]:
 
                 skipped_tl += 1
+                continue
+
+            # Arquivos que o PRÓPRIO Translate VN já gerou em uma
+            # rodada anterior (ver compiler.py) - se ainda estiverem
+            # na pasta do jogo (patch aplicado antes), não devem
+            # ser tratados como conteúdo original a extrair de novo.
+            # Ver parser.py para o motivo detalhado (contaminação
+            # das linhas `old`/`new` do bloco de tradução).
+            if "__translatevn_" in file.stem:
+
+                skipped_own_output += 1
                 continue
 
             destination = output / file.relative_to(game_folder)
@@ -98,6 +110,15 @@ class RenPyExtractor:
                 f"{skipped_tl} script(s) ignorados por estarem "
                 "dentro de uma pasta de tradução já existente do "
                 "jogo (game/tl/...)."
+            )
+
+        if skipped_own_output:
+
+            self.logger.info(
+                f"{skipped_own_output} arquivo(s) de tradução "
+                "gerados pelo próprio Translate VN em rodadas "
+                "anteriores foram ignorados (não são conteúdo "
+                "original)."
             )
 
         self.logger.info(
