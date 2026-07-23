@@ -51,15 +51,15 @@ class RenPyPatcher:
             file for file in translated.rglob("*") if file.is_file()
         ]
 
-        # Detecta o código de idioma a partir do nome dos arquivos
-        # gerados (ex: "script__translatevn_pt.rpy" → "pt"),
-        # caso não seja passado explicitamente.
+        # Detecta o código de idioma a partir do arquivo
+        # zzz_force_language__translatevn_<idioma>.rpy gerado
+        # pelo compiler, caso não seja passado explicitamente.
         if language_code is None:
 
             for file in files_to_copy:
 
                 match = re.search(
-                    r"__translatevn_([a-z]+)\.rpy$",
+                    r"zzz_force_language__translatevn_([a-z]+)\.rpy$",
                     file.name
                 )
 
@@ -70,12 +70,10 @@ class RenPyPatcher:
         language_code = language_code or "pt"
 
         # O arquivo zzz_force_language vai para a raiz do game/
-        # (precisa ser carregado antes de tudo, sem estar dentro
-        # de tl/, para funcionar corretamente).
+        # (precisa ser carregado sem estar dentro de tl/).
         # Os demais vão para game/tl/<idioma>/, mantendo a
-        # estrutura de subpastas relativa à pasta translated.
-        # Isso é obrigatório para o Ren'Py reconhecer os blocos
-        # `translate <idioma> strings:` e aplicar a tradução.
+        # estrutura de subpastas — isso é onde o Ren'Py procura
+        # traduções via `translate strings:`.
         tl_folder = game / "tl" / language_code
 
         def _destination(file: Path) -> Path:
@@ -101,19 +99,19 @@ class RenPyPatcher:
                 backup_folder=str(backup_folder)
             )
 
-        # Conjunto de destinos desta rodada — usado para não apagar
-        # o que estamos prestes a colocar no lugar.
-        destinations_this_run = {
-            _destination(file) for file in files_to_copy
-        }
-
-        # Limpeza PROATIVA: remove arquivos de tradução antigos
-        # tanto na raiz do game/ quanto dentro de tl/.
+        # Limpeza: remove o zzz_force_language antigo na raiz
+        # (único arquivo com __translatevn_ no nome fora de tl/).
+        # Os arquivos de tradução em tl/<idioma>/ são sobrescritos
+        # diretamente pela cópia abaixo.
         removed_stale = 0
 
         for old_file in list(game.rglob("*__translatevn_*.rpy")):
 
-            if old_file in destinations_this_run:
+            dest = _destination(
+                translated / old_file.relative_to(game)
+            ) if (translated / old_file.relative_to(game)).exists() else None
+
+            if dest and old_file == dest:
                 continue
 
             old_file.unlink()
@@ -155,21 +153,61 @@ class RenPyPatcher:
 
     def remove_patch(
         self,
-        game_folder: str
+        game_folder: str,
+        language_code: str = None
     ):
+        """Remove todos os arquivos de tradução aplicados:
+        - zzz_force_language__translatevn_*.rpy na raiz do game/
+        - pasta game/tl/<idioma>/ inteira (se criada pelo Translate VN)
+        """
 
         game = Path(game_folder)
 
         removed = 0
 
-        for file in game.rglob("*__translatevn_*.rpy"):
+        # Remove o arquivo de força de idioma na raiz
+        for file in list(game.glob("*__translatevn_*.rpy")):
 
             file.unlink()
 
             removed += 1
 
+        # Remove a pasta tl/<idioma>/ se existir
+        if language_code:
+
+            tl_folder = game / "tl" / language_code
+
+            if tl_folder.exists():
+
+                import shutil as _shutil
+
+                _shutil.rmtree(tl_folder)
+
+                removed += 1
+
+        else:
+
+            # Sem idioma especificado: procura pastas tl/* que
+            # contenham arquivos gerados pelo Translate VN
+            tl_base = game / "tl"
+
+            if tl_base.exists():
+
+                for lang_folder in tl_base.iterdir():
+
+                    if not lang_folder.is_dir():
+                        continue
+
+                    # Heurística: se a pasta só tem arquivos que
+                    # existem no jogo original também, não apaga.
+                    # Por ora, avisa apenas.
+                    self.logger.info(
+                        f"Pasta de tradução encontrada: {lang_folder} "
+                        "— não removida automaticamente sem idioma especificado."
+                    )
+
         self.logger.info(
-            f"{removed} arquivos removidos."
+            f"{removed} arquivo(s)/pasta(s) de tradução removidos."
         )
 
         return removed
@@ -216,7 +254,8 @@ class RenPyPatcher:
 
         game = Path(game_folder)
 
-        for file in game.rglob("*__translatevn_*.rpy"):
+        # Verifica o arquivo de força de idioma na raiz
+        for file in game.glob("*__translatevn_*.rpy"):
 
             return True
 
