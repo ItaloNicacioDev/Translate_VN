@@ -407,6 +407,42 @@
   .about-support-hint{font-size:11.5px;color:var(--text-faint);}
   .about-support-hint a{color:var(--accent);text-decoration:none;}
   .about-support-hint a:hover{text-decoration:underline;}
+  /* ---- Atualizacoes (via GitHub Releases) ---- */
+  .update-pill{
+    display:none;align-items:center;gap:6px;
+    padding:8px 14px;border-radius:999px;
+    background:var(--success-soft);color:var(--success);
+    border:1px solid var(--success);font-size:12.5px;font-weight:600;
+    cursor:pointer;animation:updatePulse 2.2s ease-in-out infinite;
+  }
+  .update-pill.show{display:flex;}
+  @keyframes updatePulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(126,227,184,.35);}
+    50%{box-shadow:0 0 0 6px rgba(126,227,184,0);}
+  }
+  .update-modal{max-width:480px;}
+  .update-version-row{
+    display:flex;align-items:center;gap:10px;
+    margin-bottom:14px;font-size:13px;
+  }
+  .update-version-row .from{color:var(--text-faint);text-decoration:line-through;font-family:'JetBrains Mono',monospace;}
+  .update-version-row .to{color:var(--success);font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;}
+  .update-notes{
+    max-height:180px;overflow-y:auto;white-space:pre-wrap;
+    background:var(--bg-input);border:1px solid var(--border-soft);
+    border-radius:10px;padding:12px;font-size:12.5px;color:var(--text-muted);
+    margin-bottom:16px;line-height:1.5;
+  }
+  .update-progress-track{
+    height:8px;border-radius:999px;background:var(--bg-input);
+    border:1px solid var(--border-soft);overflow:hidden;margin-bottom:6px;
+  }
+  .update-progress-fill{
+    height:100%;width:0%;background:var(--accent);transition:width .2s ease;
+  }
+  .update-progress-label{font-size:11.5px;color:var(--text-faint);text-align:right;margin-bottom:16px;}
+  .update-actions{display:flex;gap:10px;justify-content:flex-end;}
+  .update-modal .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text-muted);}
   .about-links{display:flex;gap:8px;flex-wrap:wrap;}
   .about-link-btn{
     font-size:12px;padding:7px 14px;border-radius:10px;
@@ -459,6 +495,9 @@
       <span class="brand-name">Tradutor VN</span>
     </div>
     <div class="topbar-controls">
+      <button class="update-pill" id="updatePill" onclick="openUpdateModal()">
+        <span>&#8679;</span> <span data-i18n="update_pill">Atualização disponível</span>
+      </button>
       <div class="lang-toggle" role="group" aria-label="Idioma da interface / Interface language">
         <button class="lang-opt active" id="langOptPt" onclick="applyLanguage('pt')">PT</button>
         <button class="lang-opt" id="langOptEn" onclick="applyLanguage('en')">EN</button>
@@ -768,6 +807,8 @@
            onclick="openExternal(this.href);return false;">🐛 Issues</a>
         <a class="about-link-btn" href="https://github.com/ItaloNicacioDev/Translate_VN/releases"
            onclick="openExternal(this.href);return false;">📦 Releases</a>
+        <a class="about-link-btn" href="#"
+           onclick="checkForUpdatesManually();return false;">🔄 <span data-i18n="about_check_update">Verificar atualização</span></a>
       </div>
     </div>
 
@@ -793,6 +834,39 @@
 
   </div>
 </div>
+
+<!-- ATUALIZAÇÃO MODAL -->
+<div class="modal-overlay" id="updateModal">
+  <div class="modal update-modal">
+    <div class="modal-head">
+      <h3 data-i18n="update_title">Nova atualização disponível</h3>
+      <button class="modal-close" onclick="closeUpdateModal()">&times;</button>
+    </div>
+
+    <div class="update-version-row">
+      <span class="from" id="updateFromVersion">v0.0.0</span>
+      <span>&rarr;</span>
+      <span class="to" id="updateToVersion">v0.0.0</span>
+    </div>
+
+    <div class="update-notes" id="updateNotes"></div>
+
+    <div id="updateProgressWrap" style="display:none;">
+      <div class="update-progress-track">
+        <div class="update-progress-fill" id="updateProgressFill"></div>
+      </div>
+      <div class="update-progress-label" id="updateProgressLabel">0%</div>
+    </div>
+
+    <div class="update-actions">
+      <button class="btn ghost" onclick="closeUpdateModal()" id="btnUpdateLater" data-i18n="update_later">Mais tarde</button>
+      <button class="btn primary" id="btnUpdateStart" onclick="startUpdateDownload()">
+        <span data-i18n="update_download_install">Baixar e instalar</span>
+      </button>
+    </div>
+  </div>
+</div>
+
 <script>
   // ===========================================================
   // Estado da UI. Diferente da versao de protótipo, agora
@@ -851,9 +925,18 @@
       plugin_confirm_uninstall:'Desinstalar o plugin "{name}"? Esta ação não pode ser desfeita.',
       about_title:'Sobre', about_tagline:"Estúdio de tradução de visual novels Ren'Py",
       about_changelog:'Notas de versão', about_links:'Links', about_support:'Suporte & Sugestões',
+      about_check_update:'Verificar atualização',
       feedback_placeholder:'Descreva um bug, sugestão ou pedido de suporte...',
       feedback_hint:'Será aberto como issue em',
       feedback_send:'Abrir issue →', feedback_empty:'Escreva sua mensagem antes de enviar.',
+      update_pill:'Atualização disponível', update_title:'Nova atualização disponível',
+      update_later:'Mais tarde', update_download_install:'Baixar e instalar',
+      update_downloading:'Baixando…', update_restart_install:'Reiniciar e instalar agora',
+      update_ready_label:'Pronto! Clique em "Reiniciar e instalar agora".',
+      update_confirm_restart:'O Translate VN vai fechar e reabrir sozinho pra concluir a atualização. Continuar?',
+      update_none_found:'Você já está na versão mais recente.',
+      update_no_notes:'Sem notas de versão para esta atualização.',
+      update_error_generic:'Não foi possível concluir a atualização. Tente novamente mais tarde.',
       cl_030_1:'Sistema de plugins instaláveis via GitHub e pasta local',
       cl_030_2:'Toggle ativar/desativar plugin sem reiniciar o app',
       cl_030_3:'Plugin Manager com descoberta automática e registry persistente',
@@ -921,9 +1004,18 @@
       plugin_confirm_uninstall:'Uninstall plugin "{name}"? This cannot be undone.',
       about_title:'About', about_tagline:"Ren'Py visual novel translation studio",
       about_changelog:'Release notes', about_links:'Links', about_support:'Support & Suggestions',
+      about_check_update:'Check for update',
       feedback_placeholder:'Describe a bug, suggestion, or support request...',
       feedback_hint:'Will be opened as an issue at',
       feedback_send:'Open issue →', feedback_empty:'Write your message before sending.',
+      update_pill:'Update available', update_title:'New update available',
+      update_later:'Later', update_download_install:'Download and install',
+      update_downloading:'Downloading…', update_restart_install:'Restart and install now',
+      update_ready_label:'Ready! Click "Restart and install now".',
+      update_confirm_restart:'Translate VN will close and reopen automatically to finish updating. Continue?',
+      update_none_found:'You are already on the latest version.',
+      update_no_notes:'No release notes for this update.',
+      update_error_generic:'Could not complete the update. Please try again later.',
       cl_030_1:'Installable plugin system via GitHub and local folder',
       cl_030_2:'Enable/disable toggle per plugin without restarting',
       cl_030_3:'Plugin Manager with auto-discovery and persistent registry',
@@ -1312,6 +1404,99 @@
       document.getElementById('feedbackText').value = '';
       btn.disabled = false;
     }, 1500);
+  }
+
+  // ===========================================================
+  // Atualizações — via GitHub Releases (core/updater.py + gui_api.py).
+  // O backend checa sozinho pouco depois do boot (ver gui_main.py)
+  // e avisa aqui via window.onUpdateAvailable; o resto do fluxo
+  // (baixar, mostrar progresso, instalar e reiniciar) roda 100%
+  // dentro do app, sem precisar abrir o navegador.
+  // ===========================================================
+
+  let updateInfo = null;
+
+  window.onUpdateAvailable = function(info){
+    updateInfo = info;
+    document.getElementById('updatePill').classList.add('show');
+  };
+
+  window.onUpdateProgress = function(payload){
+    const fill = document.getElementById('updateProgressFill');
+    const label = document.getElementById('updateProgressLabel');
+    if(payload.percent !== null && payload.percent !== undefined){
+      fill.style.width = `${payload.percent}%`;
+      label.textContent = `${payload.percent}% (${formatBytes(payload.downloaded)} / ${formatBytes(payload.total)})`;
+    } else {
+      fill.style.width = '100%';
+      label.textContent = formatBytes(payload.downloaded);
+    }
+  };
+
+  window.onUpdateReady = function(){
+    const btn = document.getElementById('btnUpdateStart');
+    btn.disabled = false;
+    btn.innerHTML = `<span data-i18n="update_restart_install">Reiniciar e instalar agora</span>`;
+    btn.onclick = confirmInstallUpdate;
+    document.getElementById('updateProgressLabel').textContent = tr('update_ready_label');
+  };
+
+  window.onUpdateError = function(payload){
+    const btn = document.getElementById('btnUpdateStart');
+    btn.disabled = false;
+    btn.innerHTML = `<span data-i18n="update_download_install">Baixar e instalar</span>`;
+    btn.onclick = startUpdateDownload;
+    alert(payload.error || tr('update_error_generic'));
+  };
+
+  function formatBytes(bytes){
+    if(bytes === null || bytes === undefined) return '';
+    const mb = bytes / (1024 * 1024);
+    return mb >= 1 ? `${mb.toFixed(1)} MB` : `${(bytes / 1024).toFixed(0)} KB`;
+  }
+
+  function openUpdateModal(){
+    if(!updateInfo) return;
+    document.getElementById('updateFromVersion').textContent = `v${updateInfo.current_version}`;
+    document.getElementById('updateToVersion').textContent = `v${updateInfo.latest_version}`;
+    document.getElementById('updateNotes').textContent = updateInfo.notes || tr('update_no_notes');
+    document.getElementById('updateProgressWrap').style.display = 'none';
+    document.getElementById('updateProgressFill').style.width = '0%';
+    const btn = document.getElementById('btnUpdateStart');
+    btn.disabled = false;
+    btn.innerHTML = `<span data-i18n="update_download_install">Baixar e instalar</span>`;
+    btn.onclick = startUpdateDownload;
+    document.getElementById('updateModal').classList.add('show');
+  }
+  function closeUpdateModal(){
+    document.getElementById('updateModal').classList.remove('show');
+  }
+
+  async function checkForUpdatesManually(){
+    closeAboutModal();
+    const info = await callApi('check_for_updates');
+    if(info && info.available){
+      updateInfo = info;
+      document.getElementById('updatePill').classList.add('show');
+      openUpdateModal();
+    } else if(info){
+      alert(tr('update_none_found'));
+    }
+  }
+
+  async function startUpdateDownload(){
+    document.getElementById('updateProgressWrap').style.display = 'block';
+    document.getElementById('updateProgressFill').style.width = '0%';
+    document.getElementById('updateProgressLabel').textContent = '0%';
+    const btn = document.getElementById('btnUpdateStart');
+    btn.disabled = true;
+    btn.innerHTML = `<span data-i18n="update_downloading">Baixando…</span>`;
+    await callApi('download_update');
+  }
+
+  async function confirmInstallUpdate(){
+    if(!confirm(tr('update_confirm_restart'))) return;
+    await callApi('install_update');
   }
 
   // ===========================================================
