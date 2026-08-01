@@ -991,6 +991,15 @@ class Api:
 
         return {"ok": True, "data": None}
 
+    def open_url(self, url: str):
+        """Abre uma URL no navegador padrão do sistema operacional.
+        Usado pela tela Sobre para abrir links externos (GitHub, Issues)
+        sem depender do window.open() do pywebview, que não funciona
+        para URLs externas na maioria das configurações."""
+        import webbrowser
+        webbrowser.open(url)
+        return {"ok": True, "data": None}
+
    # ===================================================
     # Plugins
     # ===================================================
