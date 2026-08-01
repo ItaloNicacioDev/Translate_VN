@@ -89,6 +89,7 @@ from engine.renpy.compiler import RenPyCompiler
 from engine.renpy.patcher import RenPyPatcher
 
 from core.translator import Translator
+from core.plugin_manager import PluginManager
 
 
 # ===========================================================
@@ -996,54 +997,52 @@ class Api:
 
     def list_plugins(self):
         """Lista todos os plugins instalados"""
-        plugins = self.plugin_manager.list_plugins()
-        
-        result = []
-        for info in plugins:
-            result.append({
+        def _list():
+            plugins = self.plugin_manager.list_plugins()
+            return [
+                {
+                    "name": info.metadata.name,
+                    "version": info.metadata.version,
+                    "author": info.metadata.author,
+                    "description": info.metadata.description,
+                    "plugin_type": info.metadata.plugin_type,
+                    "enabled": info.enabled,
+                    "min_version": info.metadata.min_version,
+                    "dependencies": info.metadata.dependencies,
+                }
+                for info in plugins
+            ]
+        return self._wrap(_list)
+
+    def get_plugin_details(self, plugin_name: str):
+        """Retorna detalhes completos de um plugin"""
+        def _get():
+            info = self.plugin_manager.get_plugin_info(plugin_name)
+            if not info:
+                raise RuntimeError(f"Plugin não encontrado: {plugin_name}")
+            return {
                 "name": info.metadata.name,
                 "version": info.metadata.version,
                 "author": info.metadata.author,
                 "description": info.metadata.description,
                 "plugin_type": info.metadata.plugin_type,
                 "enabled": info.enabled,
+                "path": str(info.path),
                 "min_version": info.metadata.min_version,
                 "dependencies": info.metadata.dependencies,
-            })
-        
-        return result
-
-    def get_plugin_details(self, plugin_name: str):
-        """Retorna detalhes completos de um plugin"""
-        info = self.plugin_manager.get_plugin_info(plugin_name)
-        
-        if not info:
-            return None
-        
-        return {
-            "name": info.metadata.name,
-            "version": info.metadata.version,
-            "author": info.metadata.author,
-            "description": info.metadata.description,
-            "plugin_type": info.metadata.plugin_type,
-            "enabled": info.enabled,
-            "path": str(info.path),
-            "min_version": info.metadata.min_version,
-            "dependencies": info.metadata.dependencies,
-            "config_schema": info.metadata.config_schema,
-            "config": info.instance.config if info.instance else {},
-        }
+                "config_schema": info.metadata.config_schema,
+                "config": info.instance.config if info.instance else {},
+            }
+        return self._wrap(_get)
 
     def install_plugin_github(self, repo_url: str):
         """Instala um plugin de um repositório GitHub"""
         def _install():
             success = self.plugin_manager.install_from_github(repo_url)
-            
-            if success:
-                self.plugin_manager.discover_plugins()
-                return {"ok": True, "message": "Plugin instalado com sucesso"}
-            else:
-                return {"ok": False, "message": "Erro ao instalar plugin"}
+            if not success:
+                raise RuntimeError("Falha ao instalar plugin. Verifique o link e tente novamente.")
+            self.plugin_manager.discover_plugins()
+            return {"message": "Plugin instalado com sucesso"}
         
         return self._wrap(_install, lock=False)
 
@@ -1051,12 +1050,10 @@ class Api:
         """Instala um plugin de uma pasta local"""
         def _install():
             success = self.plugin_manager.install_from_local(local_path)
-            
-            if success:
-                self.plugin_manager.discover_plugins()
-                return {"ok": True, "message": "Plugin instalado com sucesso"}
-            else:
-                return {"ok": False, "message": "Erro ao instalar plugin"}
+            if not success:
+                raise RuntimeError("Pasta inválida ou plugin.json não encontrado.")
+            self.plugin_manager.discover_plugins()
+            return {"message": "Plugin instalado com sucesso"}
         
         return self._wrap(_install, lock=False)
 
@@ -1064,11 +1061,9 @@ class Api:
         """Ativa um plugin"""
         def _enable():
             success = self.plugin_manager.enable_plugin(plugin_name)
-            
-            if success:
-                return {"ok": True, "message": f"Plugin '{plugin_name}' ativado"}
-            else:
-                return {"ok": False, "message": f"Erro ao ativar '{plugin_name}'"}
+            if not success:
+                raise RuntimeError(f"Erro ao ativar '{plugin_name}'. Verifique os logs.")
+            return {"message": f"Plugin '{plugin_name}' ativado"}
         
         return self._wrap(_enable, lock=False)
 
@@ -1076,11 +1071,9 @@ class Api:
         """Desativa um plugin"""
         def _disable():
             success = self.plugin_manager.disable_plugin(plugin_name)
-            
-            if success:
-                return {"ok": True, "message": f"Plugin '{plugin_name}' desativado"}
-            else:
-                return {"ok": False, "message": f"Erro ao desativar '{plugin_name}'"}
+            if not success:
+                raise RuntimeError(f"Erro ao desativar '{plugin_name}'.")
+            return {"message": f"Plugin '{plugin_name}' desativado"}
         
         return self._wrap(_disable, lock=False)
 
@@ -1088,11 +1081,9 @@ class Api:
         """Desinstala um plugin"""
         def _uninstall():
             success = self.plugin_manager.uninstall_plugin(plugin_name)
-            
-            if success:
-                return {"ok": True, "message": f"Plugin '{plugin_name}' desinstalado"}
-            else:
-                return {"ok": False, "message": f"Erro ao desinstalar '{plugin_name}'"}
+            if not success:
+                raise RuntimeError(f"Erro ao desinstalar '{plugin_name}'.")
+            return {"message": f"Plugin '{plugin_name}' removido"}
         
         return self._wrap(_uninstall, lock=False)
 
@@ -1100,15 +1091,12 @@ class Api:
         """Atualiza configurações de um plugin"""
         def _update():
             plugin = self.plugin_manager.get_plugin(plugin_name)
-            
             if not plugin:
-                return {"ok": False, "message": "Plugin não ativado ou não encontrado"}
-            
+                raise RuntimeError("Plugin não ativado ou não encontrado.")
             plugin.config.update(config)
             config_file = plugin.plugin_dir / "config.json"
             plugin.save_config(config_file)
-            
-            return {"ok": True, "message": "Configuração atualizada"}
+            return {"message": "Configuração atualizada"}
         
         return self._wrap(_update, lock=False)
 
@@ -1116,8 +1104,7 @@ class Api:
         """Redescobre e recarrega plugins"""
         def _reload():
             self.plugin_manager.discover_plugins()
-            plugins = self.list_plugins()
-            return {"ok": True, "plugins": plugins}
+            return {"reloaded": True}
         
         return self._wrap(_reload, lock=False)
 

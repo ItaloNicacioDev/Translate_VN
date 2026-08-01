@@ -326,16 +326,31 @@
     font-size:12.5px;color:var(--text-faint);cursor:pointer;
   }
   .file-drop:hover{border-color:var(--accent);color:var(--accent);}
-  .plugin-list{margin-top:16px;display:flex;flex-direction:column;gap:8px;max-height:180px;overflow-y:auto;}
+  .plugin-list{margin-top:16px;display:flex;flex-direction:column;gap:8px;max-height:260px;overflow-y:auto;}
   .plugin-item{
-    display:flex;align-items:center;justify-content:space-between;
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
     padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--bg-panel-raised);
   }
-  .plugin-item strong{font-size:13px;}
-  .plugin-item span{font-size:11.5px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;}
-  .plugin-remove{background:none;border:none;color:var(--text-faint);cursor:pointer;font-size:15px;}
+  .plugin-item-info{flex:1;min-width:0;}
+  .plugin-item-info strong{font-size:13px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .plugin-item-info .plugin-meta{font-size:11.5px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;margin-top:2px;}
+  .plugin-item-actions{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+  .plugin-type-badge{
+    font-size:10px;font-family:'JetBrains Mono',monospace;font-weight:700;
+    padding:2px 7px;border-radius:6px;
+    background:var(--accent-soft);color:var(--accent);
+  }
+  .plugin-remove{background:none;border:none;color:var(--text-faint);cursor:pointer;font-size:15px;padding:2px 4px;}
   .plugin-remove:hover{color:var(--danger);}
   .plugin-empty{font-size:12.5px;color:var(--text-faint);text-align:center;padding:14px 0;}
+  .plugin-status-bar{
+    font-size:12px;padding:8px 12px;border-radius:8px;margin-top:10px;
+    display:none;font-family:'JetBrains Mono',monospace;
+  }
+  .plugin-status-bar.show{display:block;}
+  .plugin-status-bar.info{background:var(--accent-soft);color:var(--accent);}
+  .plugin-status-bar.success{background:var(--success-soft);color:var(--success);}
+  .plugin-status-bar.error{background:var(--danger-soft);color:var(--danger);}
 
   /* ---------- REVIEW (revisar dialogos) ---------- */
   .review-toolbar{display:flex;gap:8px;padding:14px 20px 0;flex-wrap:wrap;}
@@ -594,13 +609,13 @@
     <label class="field-label" data-i18n="add_github_label">Adicionar via GitHub</label>
     <div class="plugin-source">
       <input class="field-input" id="githubUrl" placeholder="https://github.com/usuario/plugin-nome">
-      <button class="btn primary" onclick="addPluginGithub()" data-i18n="add_btn">Adicionar</button>
+      <button class="btn primary" id="btnInstallGithub" onclick="addPluginGithub()" data-i18n="add_btn">Adicionar</button>
     </div>
     <label class="field-label" style="margin-top:12px;" data-i18n="or_local_label">Ou carregar do computador</label>
-    <div class="file-drop" onclick="document.getElementById('localPlugin').click()">
-      <span data-i18n="file_drop_text">Clique para escolher um arquivo (.zip ou .py)</span>
+    <div class="file-drop" onclick="pickPluginFolder()" data-i18n-title="file_drop_title">
+      <span data-i18n="file_drop_text">Clique para escolher a pasta do plugin</span>
     </div>
-    <input type="file" id="localPlugin" accept=".zip,.py" style="display:none" onchange="addPluginLocal(event)">
+    <div class="plugin-status-bar" id="pluginStatusBar"></div>
     <div class="plugin-list" id="pluginList"></div>
   </div>
 </div>
@@ -649,8 +664,18 @@
       back_btn:'VOLTAR', status_title:'Status', log_empty:'Escolha uma ação ao lado para começar.',
       timer_label:'Tempo até a conclusão', timer_done:'Concluído', system_label:'Sistema',
       plugins_title:'Plugins', add_github_label:'Adicionar via GitHub', or_local_label:'Ou carregar do computador',
-      file_drop_text:'Clique para escolher um arquivo (.zip ou .py)', plugin_empty:'Nenhum plugin instalado ainda.',
+      file_drop_text:'Clique para escolher a pasta do plugin', plugin_empty:'Nenhum plugin instalado ainda.',
       plugin_source_github:'GitHub · ', plugin_source_local:'Local · computador',
+      plugin_enable:'Ativar plugin', plugin_disable:'Desativar plugin', plugin_uninstall:'Desinstalar',
+      plugin_url_empty:'Cole o link do repositório GitHub antes de instalar.',
+      plugin_installing:'Instalando plugin...', plugin_install_ok:'Plugin instalado com sucesso!',
+      plugin_install_err:'Erro ao instalar plugin. Verifique o link ou a pasta.',
+      plugin_picking:'Abrindo seletor de pasta...',
+      plugin_enabling:'Ativando plugin...', plugin_disabling:'Desativando plugin...',
+      plugin_toggle_ok:'Estado alterado com sucesso.', plugin_toggle_err:'Erro ao alterar estado do plugin.',
+      plugin_uninstalling:'Desinstalando plugin...',
+      plugin_uninstall_ok:'Plugin removido com sucesso.', plugin_uninstall_err:'Erro ao remover plugin.',
+      plugin_confirm_uninstall:'Desinstalar o plugin "{name}"? Esta ação não pode ser desfeita.',
       created_on:'criado em', created_at_label:'Criado em', empty_projects:'Nenhum projeto encontrado.',
       add_open_label:'Abrir',
       badge_default:'Padrão', make_default_btn:'Tornar padrão',
@@ -689,8 +714,18 @@
       back_btn:'BACK', status_title:'Status', log_empty:'Choose an action on the left to get started.',
       timer_label:'Time to completion', timer_done:'Done', system_label:'System',
       plugins_title:'Plugins', add_github_label:'Add via GitHub', or_local_label:'Or load from your computer',
-      file_drop_text:'Click to choose a file (.zip or .py)', plugin_empty:'No plugins installed yet.',
+      file_drop_text:'Click to choose the plugin folder', plugin_empty:'No plugins installed yet.',
       plugin_source_github:'GitHub · ', plugin_source_local:'Local · computer',
+      plugin_enable:'Enable plugin', plugin_disable:'Disable plugin', plugin_uninstall:'Uninstall',
+      plugin_url_empty:'Paste a GitHub repository link before installing.',
+      plugin_installing:'Installing plugin...', plugin_install_ok:'Plugin installed successfully!',
+      plugin_install_err:'Error installing plugin. Check the link or folder.',
+      plugin_picking:'Opening folder picker...',
+      plugin_enabling:'Enabling plugin...', plugin_disabling:'Disabling plugin...',
+      plugin_toggle_ok:'Status changed successfully.', plugin_toggle_err:'Error changing plugin status.',
+      plugin_uninstalling:'Uninstalling plugin...',
+      plugin_uninstall_ok:'Plugin removed successfully.', plugin_uninstall_err:'Error removing plugin.',
+      plugin_confirm_uninstall:'Uninstall plugin "{name}"? This cannot be undone.',
       created_on:'created on', created_at_label:'Created on', empty_projects:'No projects found.',
       add_open_label:'Open',
       badge_default:'Default', make_default_btn:'Set as default',
@@ -1023,34 +1058,142 @@
   }
 
   // ---------- PLUGINS (ainda nao ligado a um backend real) ----------
-  function openPluginModal(){ document.getElementById('pluginModal').classList.add('show'); renderPlugins(); }
+  // ===========================================================
+  // Plugins — conectados ao backend (plugin_manager.py via gui_api.py)
+  // ===========================================================
+
+  function pluginStatusShow(msg, type = 'info'){
+    const bar = document.getElementById('pluginStatusBar');
+    bar.textContent = msg;
+    bar.className = `plugin-status-bar show ${type}`;
+  }
+  function pluginStatusClear(){
+    const bar = document.getElementById('pluginStatusBar');
+    bar.className = 'plugin-status-bar';
+  }
+
+  async function loadPlugins(){
+    try {
+      const result = await callApi('list_plugins');
+      state.plugins = Array.isArray(result) ? result : [];
+    } catch(e){
+      state.plugins = [];
+    }
+    renderPlugins();
+  }
+
+  function openPluginModal(){
+    document.getElementById('pluginModal').classList.add('show');
+    pluginStatusClear();
+    loadPlugins();
+  }
   function closePluginModal(){ document.getElementById('pluginModal').classList.remove('show'); }
+
   function renderPlugins(){
     const wrap = document.getElementById('pluginList');
     const homeCount = document.getElementById('pluginHomeCount');
     if(homeCount) homeCount.textContent = state.plugins.length ? `(${state.plugins.length})` : '\u2192';
-    wrap.innerHTML = state.plugins.length ? state.plugins.map((p,i) => `
+    if(!state.plugins.length){
+      wrap.innerHTML = `<p class="plugin-empty">${tr('plugin_empty')}</p>`;
+      return;
+    }
+    wrap.innerHTML = state.plugins.map(p => {
+      const enabledCls = p.enabled ? 'active' : '';
+      const enabledTitle = p.enabled ? tr('plugin_disable') : tr('plugin_enable');
+      return `
       <div class="plugin-item">
-        <div><strong>${p.name}</strong><br><span>${p.sourceType==='github' ? tr('plugin_source_github')+p.detail : tr('plugin_source_local')}</span></div>
-        <button class="plugin-remove" onclick="removePlugin(${i})">&times;</button>
-      </div>`).join('') : `<p class="plugin-empty">${tr('plugin_empty')}</p>`;
+        <div class="plugin-item-info">
+          <strong title="${escHtml(p.name)}">${escHtml(p.name)}</strong>
+          <div class="plugin-meta">
+            v${escHtml(p.version||'?')} · ${escHtml(p.author||'?')}
+            ${p.description ? ' — '+escHtml(p.description) : ''}
+          </div>
+        </div>
+        <div class="plugin-item-actions">
+          <span class="plugin-type-badge">${escHtml(p.plugin_type||'plugin')}</span>
+          <div class="switch ${enabledCls}" title="${enabledTitle}"
+               onclick="togglePlugin('${escHtml(p.name)}', ${p.enabled})">
+            <div class="knob"></div>
+          </div>
+          <button class="plugin-remove" title="${tr('plugin_uninstall')}"
+                  onclick="removePlugin('${escHtml(p.name)}')">&times;</button>
+        </div>
+      </div>`;
+    }).join('');
   }
-  function addPluginGithub(){
+
+  function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  // callApi já extrai .data e faz alert(error) se .ok=false, retornando null.
+  // Então: resultado não-null = sucesso; null = erro (callApi já alertou o usuário).
+
+  async function addPluginGithub(){
     const input = document.getElementById('githubUrl');
     const url = input.value.trim();
-    if(!url) return;
-    const name = url.replace(/\/$/, '').split('/').pop() || 'plugin-github';
-    state.plugins.push({name, sourceType:'github', detail:url});
-    input.value = '';
-    renderPlugins();
+    if(!url){ pluginStatusShow(tr('plugin_url_empty'), 'error'); return; }
+
+    const btn = document.getElementById('btnInstallGithub');
+    btn.disabled = true;
+    pluginStatusShow(tr('plugin_installing'), 'info');
+
+    try {
+      const result = await callApi('install_plugin_github', url);
+      if(result !== null){
+        input.value = '';
+        pluginStatusShow(result.message || tr('plugin_install_ok'), 'success');
+        await loadPlugins();
+      } else {
+        pluginStatusShow(tr('plugin_install_err'), 'error');
+      }
+    } catch(e){
+      pluginStatusShow(tr('plugin_install_err'), 'error');
+    } finally {
+      btn.disabled = false;
+    }
   }
-  function addPluginLocal(ev){
-    const file = ev.target.files[0];
-    if(!file) return;
-    state.plugins.push({name:file.name, sourceType:'local', detail:''});
-    renderPlugins();
+
+  async function pickPluginFolder(){
+    pluginStatusShow(tr('plugin_picking'), 'info');
+    try {
+      const path = await callApi('pick_folder');
+      if(!path){ pluginStatusClear(); return; }
+
+      pluginStatusShow(tr('plugin_installing'), 'info');
+      const res = await callApi('install_plugin_local', path);
+      if(res !== null){
+        pluginStatusShow(res.message || tr('plugin_install_ok'), 'success');
+        await loadPlugins();
+      } else {
+        pluginStatusShow(tr('plugin_install_err'), 'error');
+      }
+    } catch(e){
+      pluginStatusShow(tr('plugin_install_err'), 'error');
+    }
   }
-  function removePlugin(i){ state.plugins.splice(i,1); renderPlugins(); }
+
+  async function togglePlugin(name, currentlyEnabled){
+    pluginStatusShow(currentlyEnabled ? tr('plugin_disabling') : tr('plugin_enabling'), 'info');
+    const action = currentlyEnabled ? 'disable_plugin' : 'enable_plugin';
+    const result = await callApi(action, name);
+    if(result !== null){
+      pluginStatusShow(result.message || tr('plugin_toggle_ok'), 'success');
+    } else {
+      pluginStatusShow(tr('plugin_toggle_err'), 'error');
+    }
+    await loadPlugins();
+  }
+
+  async function removePlugin(name){
+    if(!confirm(tr('plugin_confirm_uninstall').replace('{name}', name))) return;
+    pluginStatusShow(tr('plugin_uninstalling'), 'info');
+    const result = await callApi('uninstall_plugin', name);
+    if(result !== null){
+      pluginStatusShow(result.message || tr('plugin_uninstall_ok'), 'success');
+    } else {
+      pluginStatusShow(tr('plugin_uninstall_err'), 'error');
+    }
+    await loadPlugins();
+  }
 
   // ===========================================================
   // AÇÕES DO PROJETO -- agora chamam de verdade o gui_api.py,
@@ -1306,7 +1449,7 @@
     await loadLanguages();
     await loadProjects();
     populateDefaultLangSelect();
-    renderPlugins();
+    await loadPlugins();
   });
 </script>
 </body>
