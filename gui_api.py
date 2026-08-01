@@ -90,6 +90,8 @@ from engine.renpy.patcher import RenPyPatcher
 
 from core.translator import Translator
 from core.plugin_manager import PluginManager
+from core.updater import Updater
+from core.version import APP_VERSION
 
 
 # ===========================================================
@@ -147,7 +149,7 @@ def attach_gui_log_handler(get_window):
 
 class Api:
 
-   def __init__(self):
+    def __init__(self):
 
         self.logger = Logger()
 
@@ -179,6 +181,16 @@ class Api:
                 self.plugin_manager.enable_plugin(plugin_info.name)
 
         self._apply_saved_translation_provider()
+
+        # ===================================================
+        # Atualizacoes automaticas via GitHub Releases (ver
+        # core/updater.py). so' guarda a instancia aqui -- a
+        # checagem em segundo plano e' disparada pelo
+        # gui_main.py depois que a janela ja existe (ver
+        # start_background_update_check).
+        # ===================================================
+        self.updater = Updater()
+        self._update_info = None
 
         # Guarda o projeto...
 
@@ -1000,7 +1012,110 @@ class Api:
         webbrowser.open(url)
         return {"ok": True, "data": None}
 
-   # ===================================================
+    # ===================================================
+    # Atualizacoes (via GitHub Releases -- core/updater.py)
+    # ===================================================
+
+    def get_app_version(self):
+        """Devolve a versao atual do app, pra tela Sobre."""
+
+        return self._wrap(lambda: APP_VERSION)
+
+    def check_for_updates(self):
+        """Checagem MANUAL (botao 'Verificar atualizacao'). Devolve
+        o resultado direto pro JS, sem depender de eventos."""
+
+        def _check():
+            info = self.updater.check_for_update()
+            self._update_info = info
+            return info
+
+        return self._wrap(_check, lock=False)
+
+    def start_background_update_check(self):
+        """Checagem AUTOMATICA, disparada uma vez pelo gui_main.py
+        pouco depois do app abrir. Roda numa thread separada pra
+        nao atrasar a primeira tela; se achar uma versao mais nova,
+        avisa a UI via evento (window.onUpdateAvailable) em vez de
+        devolver um valor de retorno normal."""
+
+        def _run():
+            info = self.updater.check_for_update()
+            self._update_info = info
+            if info.get("available"):
+                self._push("onUpdateAvailable", info)
+
+        threading.Thread(target=_run, daemon=True).start()
+
+        return {"ok": True, "data": None}
+
+    def download_update(self):
+        """Baixa o instalador da ultima release em segundo plano,
+        empurrando progresso incremental pro JS via
+        onUpdateProgress ate terminar (onUpdateReady) ou falhar
+        (onUpdateError)."""
+
+        def _run():
+            try:
+                info = self._update_info or self.updater.check_for_update()
+
+                if not info.get("available") or not info.get("download_url"):
+                    self._push("onUpdateError", {
+                        "error": "Nenhuma atualizacao disponivel para baixar no momento."
+                    })
+                    return
+
+                def _progress(downloaded, total):
+                    self._push("onUpdateProgress", {
+                        "downloaded": downloaded,
+                        "total": total,
+                        "percent": (
+                            round(downloaded * 100 / total, 1) if total else None
+                        )
+                    })
+
+                self.updater.download_installer(info["download_url"], _progress)
+
+                self._push("onUpdateReady", {
+                    "version": info.get("latest_version")
+                })
+
+            except Exception as error:
+                self.logger.error(str(error))
+                self._push("onUpdateError", {"error": str(error)})
+
+        threading.Thread(target=_run, daemon=True).start()
+
+        return {"ok": True, "data": None}
+
+    def install_update(self):
+        """Dispara o instalador silencioso e fecha o app atual logo
+        em seguida, pra liberar os arquivos que o Inno Setup precisa
+        sobrescrever. O proprio instalador reabre o app sozinho ao
+        terminar (ver installer.iss)."""
+
+        try:
+            self.updater.install_and_restart()
+        except Exception as error:
+            self.logger.error(str(error))
+            return {"ok": False, "error": str(error)}
+
+        import webview
+
+        def _close_later():
+            try:
+                webview.windows[0].destroy()
+            except Exception:
+                pass
+
+        # Delay maior que o do quit_app normal: o instalador ainda
+        # precisa terminar de subir (extrair o proprio setup etc)
+        # antes da gente soltar o lock do nosso proprio .exe.
+        threading.Timer(1.2, _close_later).start()
+
+        return {"ok": True, "data": None}
+
+    # ===================================================
     # Plugins
     # ===================================================
 
