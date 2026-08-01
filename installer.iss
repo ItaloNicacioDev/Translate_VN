@@ -1,88 +1,79 @@
-"""
-gui_main.py
+; installer.iss
+;
+; Script do Inno Setup para o Translate VN (versao GUI).
+; Empacota a pasta gerada pelo PyInstaller (--onedir) num unico
+; instalador (Setup.exe), com atalhos de Area de Trabalho e Menu
+; Iniciar usando o icone correto, e desinstalador.
+;
+; Requer Inno Setup 6 instalado: https://jrsoftware.org/isdl.php
+; Compilar com: ISCC.exe installer.iss  (o build_gui.bat ja faz isso)
 
-Ponto de entrada do Translate VN em modo GUI (desktop, via
-pywebview). O main.py original (CLI) continua existindo e
-funcionando exatamente como antes -- este e' um segundo ponto de
-entrada, para quem preferir a interface grafica.
+; MyAppVersion pode vir de fora via "ISCC.exe /DMyAppVersion=1.2.3
+; installer.iss" -- e' o que build_gui.bat faz automaticamente,
+; lendo o arquivo VERSION da raiz do projeto (fonte unica junto
+; com core/version.py). O valor abaixo so' e' usado se ISCC.exe
+; for chamado sem esse parametro.
+#ifndef MyAppVersion
+  #define MyAppVersion "0.3.0"
+#endif
+#define MyAppName "Translate VN"
+#define MyAppPublisher "Translate VN"
+#define MyAppExeName "TranslateVN-GUI.exe"
+; Precisa bater com o nome do mutex criado em gui_main.py
+; (_register_app_mutex) -- e' assim que o Inno Setup consegue
+; detectar e fechar/reabrir o app sozinho durante uma atualizacao
+; silenciosa (CloseApplications/RestartApplications abaixo).
+#define MyAppMutex "TranslateVNAppMutex"
 
-Para rodar em modo desenvolvimento:
-    python gui_main.py
+[Setup]
+AppId={{B7B2C9A0-6C7B-4E9F-9C2F-6E6F1B7B0A11}
+AppName={#MyAppName}
+AppVersion={#MyAppVersion}
+AppPublisher={#MyAppPublisher}
+AppMutex={#MyAppMutex}
+; Fecha o Translate VN sozinho se ele estiver aberto durante a
+; instalacao (update in-place) e reabre ele no final -- e' o que o
+; updater interno do app usa (junto com os parametros de linha de
+; comando /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS em
+; core/updater.py) pra se auto-atualizar sem o usuario precisar
+; fechar o programa manualmente.
+CloseApplications=yes
+RestartApplications=yes
+DefaultDirName={autopf}\{#MyAppName}
+DefaultGroupName={#MyAppName}
+DisableProgramGroupPage=yes
+OutputDir=Output
+OutputBaseFilename=TranslateVN-Setup
+SetupIconFile=app_icon.ico
+UninstallDisplayIcon={app}\{#MyAppExeName}
+Compression=lzma2
+SolidCompression=yes
+WizardStyle=modern
+ArchitecturesInstallIn64BitMode=x64compatible
+PrivilegesRequired=lowest
 
-Para gerar o .exe da GUI, veja build_gui.bat.
-"""
+[Languages]
+Name: "brazilianportuguese"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
+Name: "english"; MessagesFile: "compiler:Default.isl"
 
-import sys
-import os
-import threading
-import webview
+[Tasks]
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 
-from gui_api import Api, attach_gui_log_handler
+[Files]
+Source: "dist\TranslateVN-GUI\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
+[Icons]
+Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\{#MyAppExeName}"
+Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
-def _register_app_mutex():
-    """Cria o mesmo mutex nomeado que installer.iss usa em
-    AppMutex (=TranslateVNAppMutex). Isso permite que o Inno Setup
-    detecte que o app esta rodando e feche/reabra ele sozinho
-    durante uma atualizacao (CloseApplications/RestartApplications),
-    mesmo se o instalador for aberto manualmente em vez de pelo
-    updater interno (Configuracoes > Atualizacoes)."""
-
-    if sys.platform != "win32":
-        return
-
-    try:
-        import ctypes
-        # O handle fica aberto ate' o processo terminar (o Windows
-        # libera sozinho) -- nao precisamos guardar/fechar ele.
-        ctypes.windll.kernel32.CreateMutexW(None, False, "TranslateVNAppMutex")
-    except Exception:
-        pass
-
-
-def resource_path(relative_path: str) -> str:
-    """Resolve caminho de recursos (ui/index.html) tanto rodando
-    via 'python gui_main.py' quanto congelado em .exe (onefile),
-    onde os arquivos de dados ficam em sys._MEIPASS."""
-
-    base_path = getattr(sys, "_MEIPASS", None)
-
-    if base_path is None:
-        base_path = os.path.dirname(os.path.abspath(__file__))
-
-    return os.path.join(base_path, relative_path)
-
-
-def main():
-
-    _register_app_mutex()
-
-    api = Api()
-
-    window = webview.create_window(
-        "Translate VN",
-        resource_path(os.path.join("ui", "index.html")),
-        js_api=api,
-        width=1180,
-        height=760,
-        min_size=(860, 600)
-    )
-
-    # O handler de log e o push de progresso da Api precisam da
-    # instancia da janela, que so' existe depois do create_window
-    # acima -- por isso get_window e' uma funcao (lazy), nao a
-    # janela direto.
-    attach_gui_log_handler(lambda: window)
-    api.set_window_getter(lambda: window)
-
-    # Checa por atualizacoes em segundo plano pouco depois de abrir
-    # (ver core/updater.py / gui_api.py). O delay evita competir com
-    # o carregamento da primeira tela; so' avisa a UI (pill + modal)
-    # se realmente existir uma versao mais nova publicada.
-    threading.Timer(2.0, api.start_background_update_check).start()
-
-    webview.start()
-
-
-if __name__ == "__main__":
-    main()
+[Run]
+; Instalacao manual/interativa: oferece o checkbox normal "abrir
+; o programa" no fim do wizard (pulado automaticamente se rodar
+; silencioso, por causa de "skipifsilent").
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent
+; Auto-atualizacao silenciosa (disparada de dentro do proprio app,
+; ver core/updater.py): reabre o Translate VN sozinho ao terminar,
+; sem precisar de nenhum clique -- so' roda quando o Setup for
+; executado com /VERYSILENT (WizardSilent = True).
+Filename: "{app}\{#MyAppExeName}"; Flags: nowait postinstall; Check: WizardSilent
