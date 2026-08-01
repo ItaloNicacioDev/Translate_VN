@@ -352,6 +352,77 @@
   .plugin-status-bar.success{background:var(--success-soft);color:var(--success);}
   .plugin-status-bar.error{background:var(--danger-soft);color:var(--danger);}
 
+  /* ---------- SOBRE MODAL ---------- */
+  .about-modal{max-width:540px;}
+  .about-header{display:flex;align-items:center;gap:14px;margin-bottom:18px;}
+  .about-logo{
+    width:48px;height:48px;border-radius:14px;
+    background:linear-gradient(135deg,var(--accent),var(--coral));
+    display:flex;align-items:center;justify-content:center;
+    font-size:22px;flex-shrink:0;
+  }
+  .about-title{flex:1;}
+  .about-title h2{margin:0;font-size:20px;font-family:'Fraunces',serif;}
+  .about-title span{font-size:12px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;}
+  .about-section{margin-bottom:16px;}
+  .about-section-title{
+    font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+    color:var(--text-faint);margin-bottom:8px;font-family:'JetBrains Mono',monospace;
+  }
+  .about-changelog{
+    border:1px solid var(--border);border-radius:12px;overflow:hidden;
+    max-height:200px;overflow-y:auto;
+  }
+  .changelog-entry{padding:10px 14px;border-bottom:1px solid var(--border-soft);}
+  .changelog-entry:last-child{border-bottom:none;}
+  .changelog-version{
+    display:flex;align-items:center;gap:8px;margin-bottom:5px;
+  }
+  .changelog-vtag{
+    font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;
+    background:var(--accent-soft);color:var(--accent);
+    padding:2px 8px;border-radius:6px;
+  }
+  .changelog-date{font-size:11px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;}
+  .changelog-items{list-style:none;margin:0;padding:0;}
+  .changelog-items li{
+    font-size:12.5px;color:var(--text-muted);padding:2px 0;
+    display:flex;align-items:baseline;gap:6px;
+  }
+  .changelog-items li::before{content:'·';color:var(--accent);font-weight:700;}
+  .about-support{
+    border:1px solid var(--border);border-radius:12px;overflow:hidden;
+  }
+  .about-support textarea{
+    width:100%;min-height:90px;resize:vertical;
+    background:var(--bg-input);border:none;outline:none;
+    color:var(--text-primary);font-size:13px;font-family:'Manrope',sans-serif;
+    padding:12px 14px;line-height:1.5;
+  }
+  .about-support-footer{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:10px 14px;border-top:1px solid var(--border-soft);
+    background:var(--bg-panel-raised);gap:10px;
+  }
+  .about-support-hint{font-size:11.5px;color:var(--text-faint);}
+  .about-support-hint a{color:var(--accent);text-decoration:none;}
+  .about-support-hint a:hover{text-decoration:underline;}
+  .about-links{display:flex;gap:8px;flex-wrap:wrap;}
+  .about-link-btn{
+    font-size:12px;padding:7px 14px;border-radius:10px;
+    border:1px solid var(--border);background:var(--bg-panel-raised);
+    color:var(--text-muted);cursor:pointer;font-weight:600;
+    text-decoration:none;display:inline-flex;align-items:center;gap:5px;
+  }
+  .about-link-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .about-send-btn{
+    font-size:12px;padding:7px 16px;border-radius:10px;
+    border:1px solid var(--accent);background:var(--accent);
+    color:var(--accent-ink);cursor:pointer;font-weight:700;flex-shrink:0;
+  }
+  .about-send-btn:hover{opacity:.9;}
+  .about-send-btn:disabled{opacity:.5;cursor:default;}
+
   /* ---------- REVIEW (revisar dialogos) ---------- */
   .review-toolbar{display:flex;gap:8px;padding:14px 20px 0;flex-wrap:wrap;}
   .review-toolbar button{
@@ -414,6 +485,7 @@
         <button class="pill-btn" onclick="nav('providers')"><span data-i18n="nav_providers">Provedores de Tradução</span> <span class="arrow">&rarr;</span></button>
         <button class="pill-btn" onclick="openPluginModal()"><span data-i18n="nav_plugins">Plugins</span> <span class="arrow" id="pluginHomeCount"></span></button>
         <button class="pill-btn" onclick="nav('config')"><span data-i18n="nav_config">Configurações</span> <span class="arrow">&rarr;</span></button>
+        <button class="pill-btn" onclick="openAboutModal()"><span data-i18n="nav_about">Sobre</span> <span class="arrow">ℹ</span></button>
         <button class="pill-btn ghost" onclick="sairApp()" data-i18n="nav_exit">SAIR</button>
       </div>
     </div>
@@ -620,6 +692,107 @@
   </div>
 </div>
 
+<!-- SOBRE MODAL -->
+<div class="modal-overlay" id="aboutModal">
+  <div class="modal about-modal">
+    <div class="modal-head">
+      <h3 data-i18n="about_title">Sobre</h3>
+      <button class="modal-close" onclick="closeAboutModal()">&times;</button>
+    </div>
+
+    <div class="about-header">
+      <div class="about-logo">📖</div>
+      <div class="about-title">
+        <h2>Translate VN</h2>
+        <span data-i18n="about_tagline">Estúdio de tradução de visual novels Ren'Py</span>
+      </div>
+    </div>
+
+    <!-- Notas de versão -->
+    <div class="about-section">
+      <div class="about-section-title" data-i18n="about_changelog">Notas de versão</div>
+      <div class="about-changelog">
+
+        <div class="changelog-entry">
+          <div class="changelog-version">
+            <span class="changelog-vtag">v0.3.0</span>
+            <span class="changelog-date">2026-08-01</span>
+          </div>
+          <ul class="changelog-items">
+            <li data-i18n="cl_030_1">Sistema de plugins instaláveis via GitHub e pasta local</li>
+            <li data-i18n="cl_030_2">Toggle ativar/desativar plugin sem reiniciar o app</li>
+            <li data-i18n="cl_030_3">Plugin Manager com descoberta automática e registry persistente</li>
+            <li data-i18n="cl_030_4">Barra de status de instalação com feedback em tempo real</li>
+            <li data-i18n="cl_030_5">Tela Sobre com changelog e canal de suporte</li>
+          </ul>
+        </div>
+
+        <div class="changelog-entry">
+          <div class="changelog-version">
+            <span class="changelog-vtag">v0.2.0</span>
+            <span class="changelog-date">2026-07</span>
+          </div>
+          <ul class="changelog-items">
+            <li data-i18n="cl_020_1">GUI desktop via pywebview (modo janela, sem console)</li>
+            <li data-i18n="cl_020_2">Provedores de tradução configuráveis com fallback automático</li>
+            <li data-i18n="cl_020_3">Paralelismo e retentativas na tradução com barra de progresso</li>
+            <li data-i18n="cl_020_4">Cancelamento de tradução em andamento</li>
+            <li data-i18n="cl_020_5">Revisão e edição manual de diálogos traduzidos</li>
+          </ul>
+        </div>
+
+        <div class="changelog-entry">
+          <div class="changelog-version">
+            <span class="changelog-vtag">v0.1.0</span>
+            <span class="changelog-date">2026-06</span>
+          </div>
+          <ul class="changelog-items">
+            <li data-i18n="cl_010_1">Extração e decompilação de arquivos .rpyc via unrpyc</li>
+            <li data-i18n="cl_010_2">Parser com filtragem de strings UI/hex/identificadores</li>
+            <li data-i18n="cl_010_3">Compilador no formato nativo translate strings: do Ren'Py</li>
+            <li data-i18n="cl_010_4">Patcher que aplica tradução em game/tl/&lt;idioma&gt;/</li>
+            <li data-i18n="cl_010_5">Deduplicação cross-file de strings duplicadas</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Links -->
+    <div class="about-section">
+      <div class="about-section-title" data-i18n="about_links">Links</div>
+      <div class="about-links">
+        <a class="about-link-btn" href="https://github.com/ItaloNicacioDev/Translate_VN"
+           onclick="openExternal(this.href);return false;">⚙ GitHub</a>
+        <a class="about-link-btn" href="https://github.com/ItaloNicacioDev/Translate_VN/issues"
+           onclick="openExternal(this.href);return false;">🐛 Issues</a>
+        <a class="about-link-btn" href="https://github.com/ItaloNicacioDev/Translate_VN/releases"
+           onclick="openExternal(this.href);return false;">📦 Releases</a>
+      </div>
+    </div>
+
+    <!-- Suporte / sugestões -->
+    <div class="about-section">
+      <div class="about-section-title" data-i18n="about_support">Suporte &amp; Sugestões</div>
+      <div class="about-support">
+        <textarea id="feedbackText"
+          data-i18n-placeholder="feedback_placeholder"
+          placeholder="Descreva um bug, sugestão ou dúvida..."></textarea>
+        <div class="about-support-footer">
+          <span class="about-support-hint">
+            <span data-i18n="feedback_hint">Será aberto como issue em</span>
+            <a href="https://github.com/ItaloNicacioDev/Translate_VN/issues"
+               onclick="openExternal(this.href);return false;">github.com/…/issues</a>
+          </span>
+          <button class="about-send-btn" id="btnSendFeedback" onclick="sendFeedback()">
+            <span data-i18n="feedback_send">Abrir issue →</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
 <script>
   // ===========================================================
   // Estado da UI. Diferente da versao de protótipo, agora
@@ -645,7 +818,7 @@
     pt: {
       home_title:'Bem-vindo(a)', home_subtitle:"Seu estúdio de tradução de visual novels em Ren'Py.",
       nav_new:'Novo projeto', nav_open:'Abrir projeto', nav_list:'Listar projetos', nav_langs:'Idiomas',
-      nav_plugins:'Plugins', nav_config:'Configurações', nav_exit:'SAIR',
+      nav_plugins:'Plugins', nav_config:'Configurações', nav_exit:'SAIR', nav_about:'Sobre',
       novo_title:'Novo projeto', novo_name_label:'Nome do projeto', novo_folder_label:'Pasta do jogo',
       browse_btn:'Procurar', novo_hint:"O motor Ren'Py é detectado automaticamente ao criar o projeto.",
       create_btn:'Criar projeto', cancel_btn:'Cancelar',
@@ -676,6 +849,26 @@
       plugin_uninstalling:'Desinstalando plugin...',
       plugin_uninstall_ok:'Plugin removido com sucesso.', plugin_uninstall_err:'Erro ao remover plugin.',
       plugin_confirm_uninstall:'Desinstalar o plugin "{name}"? Esta ação não pode ser desfeita.',
+      about_title:'Sobre', about_tagline:"Estúdio de tradução de visual novels Ren'Py",
+      about_changelog:'Notas de versão', about_links:'Links', about_support:'Suporte & Sugestões',
+      feedback_placeholder:'Descreva um bug, sugestão ou pedido de suporte...',
+      feedback_hint:'Será aberto como issue em',
+      feedback_send:'Abrir issue →', feedback_empty:'Escreva sua mensagem antes de enviar.',
+      cl_030_1:'Sistema de plugins instaláveis via GitHub e pasta local',
+      cl_030_2:'Toggle ativar/desativar plugin sem reiniciar o app',
+      cl_030_3:'Plugin Manager com descoberta automática e registry persistente',
+      cl_030_4:'Barra de status de instalação com feedback em tempo real',
+      cl_030_5:'Tela Sobre com changelog e canal de suporte',
+      cl_020_1:'GUI desktop via pywebview (modo janela, sem console)',
+      cl_020_2:'Provedores de tradução configuráveis com fallback automático',
+      cl_020_3:'Paralelismo e retentativas na tradução com barra de progresso',
+      cl_020_4:'Cancelamento de tradução em andamento',
+      cl_020_5:'Revisão e edição manual de diálogos traduzidos',
+      cl_010_1:'Extração e decompilação de arquivos .rpyc via unrpyc',
+      cl_010_2:"Parser com filtragem de strings UI/hex/identificadores",
+      cl_010_3:"Compilador no formato nativo translate strings: do Ren'Py",
+      cl_010_4:"Patcher que aplica tradução em game/tl/<idioma>/",
+      cl_010_5:'Deduplicação cross-file de strings duplicadas',
       created_on:'criado em', created_at_label:'Criado em', empty_projects:'Nenhum projeto encontrado.',
       add_open_label:'Abrir',
       badge_default:'Padrão', make_default_btn:'Tornar padrão',
@@ -695,7 +888,7 @@
     en: {
       home_title:'Welcome', home_subtitle:"Your Ren'Py visual novel translation studio.",
       nav_new:'New project', nav_open:'Open project', nav_list:'List projects', nav_langs:'Languages',
-      nav_plugins:'Plugins', nav_config:'Settings', nav_exit:'EXIT',
+      nav_plugins:'Plugins', nav_config:'Settings', nav_exit:'EXIT', nav_about:'About',
       novo_title:'New project', novo_name_label:'Project name', novo_folder_label:'Game folder',
       browse_btn:'Browse', novo_hint:"The Ren'Py engine is detected automatically when you create the project.",
       create_btn:'Create project', cancel_btn:'Cancel',
@@ -726,6 +919,26 @@
       plugin_uninstalling:'Uninstalling plugin...',
       plugin_uninstall_ok:'Plugin removed successfully.', plugin_uninstall_err:'Error removing plugin.',
       plugin_confirm_uninstall:'Uninstall plugin "{name}"? This cannot be undone.',
+      about_title:'About', about_tagline:"Ren'Py visual novel translation studio",
+      about_changelog:'Release notes', about_links:'Links', about_support:'Support & Suggestions',
+      feedback_placeholder:'Describe a bug, suggestion, or support request...',
+      feedback_hint:'Will be opened as an issue at',
+      feedback_send:'Open issue →', feedback_empty:'Write your message before sending.',
+      cl_030_1:'Installable plugin system via GitHub and local folder',
+      cl_030_2:'Enable/disable toggle per plugin without restarting',
+      cl_030_3:'Plugin Manager with auto-discovery and persistent registry',
+      cl_030_4:'Install status bar with real-time feedback',
+      cl_030_5:'About screen with changelog and support channel',
+      cl_020_1:'Desktop GUI via pywebview (window mode, no console)',
+      cl_020_2:'Configurable translation providers with automatic fallback',
+      cl_020_3:'Parallelism and retries in translation with progress bar',
+      cl_020_4:'Cancel ongoing translation',
+      cl_020_5:'Manual review and editing of translated dialogues',
+      cl_010_1:'Extraction and decompilation of .rpyc files via unrpyc',
+      cl_010_2:'Parser with UI/hex/identifier string filtering',
+      cl_010_3:"Compiler in Ren'Py native translate strings: format",
+      cl_010_4:'Patcher applying translation to game/tl/<lang>/',
+      cl_010_5:'Cross-file deduplication of duplicate strings',
       created_on:'created on', created_at_label:'Created on', empty_projects:'No projects found.',
       add_open_label:'Open',
       badge_default:'Default', make_default_btn:'Set as default',
@@ -1058,6 +1271,49 @@
   }
 
   // ---------- PLUGINS (ainda nao ligado a um backend real) ----------
+  // ===========================================================
+  // Sobre — modal com changelog e canal de suporte via GitHub Issues
+  // ===========================================================
+
+  function openAboutModal(){
+    document.getElementById('aboutModal').classList.add('show');
+    applyLanguage(state.uiLang);
+  }
+  function closeAboutModal(){
+    document.getElementById('aboutModal').classList.remove('show');
+  }
+
+  function openExternal(url){
+    // pywebview não permite window.open direto para URLs externas;
+    // usa o método nativo do SO via Python, ou fallback para window.open.
+    if(window.pywebview && window.pywebview.api && window.pywebview.api.open_url){
+      window.pywebview.api.open_url(url);
+    } else {
+      window.open(url, '_blank');
+    }
+  }
+
+  async function sendFeedback(){
+    const text = document.getElementById('feedbackText').value.trim();
+    if(!text){ alert(tr('feedback_empty')); return; }
+
+    const btn = document.getElementById('btnSendFeedback');
+    btn.disabled = true;
+
+    // Monta a URL da issue pré-preenchida do GitHub
+    const title = encodeURIComponent('[Feedback] ' + text.split('\n')[0].slice(0, 80));
+    const body  = encodeURIComponent(text);
+    const url   = `https://github.com/ItaloNicacioDev/Translate_VN/issues/new?title=${title}&body=${body}`;
+
+    openExternal(url);
+
+    // Limpa a caixa depois de abrir o navegador
+    setTimeout(() => {
+      document.getElementById('feedbackText').value = '';
+      btn.disabled = false;
+    }, 1500);
+  }
+
   // ===========================================================
   // Plugins — conectados ao backend (plugin_manager.py via gui_api.py)
   // ===========================================================
