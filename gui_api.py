@@ -146,7 +146,7 @@ def attach_gui_log_handler(get_window):
 
 class Api:
 
-    def __init__(self):
+   def __init__(self):
 
         self.logger = Logger()
 
@@ -160,7 +160,26 @@ class Api:
 
         self.translator = Translator()
 
+        # ===================================================
+        # Inicializar gerenciador de plugins
+        # ===================================================
+        self.plugin_manager = PluginManager(
+            plugins_dir="plugins",
+            config_file="plugins/plugins_config.json",
+            logger=self.logger
+        )
+        
+        # Descobrir plugins instalados
+        self.plugin_manager.discover_plugins()
+        
+        # Ativar plugins que estavam ativados antes
+        for plugin_info in self.plugin_manager.list_plugins():
+            if plugin_info.metadata.enabled:
+                self.plugin_manager.enable_plugin(plugin_info.name)
+
         self._apply_saved_translation_provider()
+
+        # Guarda o projeto...
 
         # Guarda o projeto (com id resolvido) atualmente aberto na
         # tela de projeto, igual ao "project" que o main.py (CLI)
@@ -970,6 +989,137 @@ class Api:
         threading.Timer(0.15, _close_later).start()
 
         return {"ok": True, "data": None}
+
+   # ===================================================
+    # Plugins
+    # ===================================================
+
+    def list_plugins(self):
+        """Lista todos os plugins instalados"""
+        plugins = self.plugin_manager.list_plugins()
+        
+        result = []
+        for info in plugins:
+            result.append({
+                "name": info.metadata.name,
+                "version": info.metadata.version,
+                "author": info.metadata.author,
+                "description": info.metadata.description,
+                "plugin_type": info.metadata.plugin_type,
+                "enabled": info.enabled,
+                "min_version": info.metadata.min_version,
+                "dependencies": info.metadata.dependencies,
+            })
+        
+        return result
+
+    def get_plugin_details(self, plugin_name: str):
+        """Retorna detalhes completos de um plugin"""
+        info = self.plugin_manager.get_plugin_info(plugin_name)
+        
+        if not info:
+            return None
+        
+        return {
+            "name": info.metadata.name,
+            "version": info.metadata.version,
+            "author": info.metadata.author,
+            "description": info.metadata.description,
+            "plugin_type": info.metadata.plugin_type,
+            "enabled": info.enabled,
+            "path": str(info.path),
+            "min_version": info.metadata.min_version,
+            "dependencies": info.metadata.dependencies,
+            "config_schema": info.metadata.config_schema,
+            "config": info.instance.config if info.instance else {},
+        }
+
+    def install_plugin_github(self, repo_url: str):
+        """Instala um plugin de um repositório GitHub"""
+        def _install():
+            success = self.plugin_manager.install_from_github(repo_url)
+            
+            if success:
+                self.plugin_manager.discover_plugins()
+                return {"ok": True, "message": "Plugin instalado com sucesso"}
+            else:
+                return {"ok": False, "message": "Erro ao instalar plugin"}
+        
+        return self._wrap(_install, lock=False)
+
+    def install_plugin_local(self, local_path: str):
+        """Instala um plugin de uma pasta local"""
+        def _install():
+            success = self.plugin_manager.install_from_local(local_path)
+            
+            if success:
+                self.plugin_manager.discover_plugins()
+                return {"ok": True, "message": "Plugin instalado com sucesso"}
+            else:
+                return {"ok": False, "message": "Erro ao instalar plugin"}
+        
+        return self._wrap(_install, lock=False)
+
+    def enable_plugin(self, plugin_name: str):
+        """Ativa um plugin"""
+        def _enable():
+            success = self.plugin_manager.enable_plugin(plugin_name)
+            
+            if success:
+                return {"ok": True, "message": f"Plugin '{plugin_name}' ativado"}
+            else:
+                return {"ok": False, "message": f"Erro ao ativar '{plugin_name}'"}
+        
+        return self._wrap(_enable, lock=False)
+
+    def disable_plugin(self, plugin_name: str):
+        """Desativa um plugin"""
+        def _disable():
+            success = self.plugin_manager.disable_plugin(plugin_name)
+            
+            if success:
+                return {"ok": True, "message": f"Plugin '{plugin_name}' desativado"}
+            else:
+                return {"ok": False, "message": f"Erro ao desativar '{plugin_name}'"}
+        
+        return self._wrap(_disable, lock=False)
+
+    def uninstall_plugin(self, plugin_name: str):
+        """Desinstala um plugin"""
+        def _uninstall():
+            success = self.plugin_manager.uninstall_plugin(plugin_name)
+            
+            if success:
+                return {"ok": True, "message": f"Plugin '{plugin_name}' desinstalado"}
+            else:
+                return {"ok": False, "message": f"Erro ao desinstalar '{plugin_name}'"}
+        
+        return self._wrap(_uninstall, lock=False)
+
+    def update_plugin_config(self, plugin_name: str, config: dict):
+        """Atualiza configurações de um plugin"""
+        def _update():
+            plugin = self.plugin_manager.get_plugin(plugin_name)
+            
+            if not plugin:
+                return {"ok": False, "message": "Plugin não ativado ou não encontrado"}
+            
+            plugin.config.update(config)
+            config_file = plugin.plugin_dir / "config.json"
+            plugin.save_config(config_file)
+            
+            return {"ok": True, "message": "Configuração atualizada"}
+        
+        return self._wrap(_update, lock=False)
+
+    def reload_plugins(self):
+        """Redescobre e recarrega plugins"""
+        def _reload():
+            self.plugin_manager.discover_plugins()
+            plugins = self.list_plugins()
+            return {"ok": True, "plugins": plugins}
+        
+        return self._wrap(_reload, lock=False)
 
     # ===================================================
 
