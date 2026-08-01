@@ -18,4 +18,4 @@ IMPORTANTE: ao publicar uma nova versao...
      (core/updater.py) encontra e baixa sozinho.
 """
 
-APP_VERSION = "0.3.0"
+APP_VERSION = "1.3.0"
