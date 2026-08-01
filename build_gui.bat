@@ -13,7 +13,7 @@ REM =====================================================
 setlocal
 
 echo.
-echo [0/7] Limpando builds antigos...
+echo [0/8] Limpando builds antigos...
 if not exist app_icon.ico (
     echo ERRO: app_icon.ico nao encontrado na raiz do projeto.
     echo Coloque o arquivo app_icon.ico ao lado deste build_gui.bat antes de continuar.
@@ -34,19 +34,19 @@ if exist Output rmdir /s /q Output
 if exist TranslateVN-GUI.spec del /q TranslateVN-GUI.spec
 
 echo.
-echo [1/7] Criando/reaproveitando ambiente virtual de build...
+echo [1/8] Criando/reaproveitando ambiente virtual de build...
 if not exist build_env (
     python -m venv build_env
 )
 call build_env\Scripts\activate.bat
 
 echo.
-echo [2/7] Instalando dependencias (inclui pywebview)...
+echo [2/8] Instalando dependencias (inclui pywebview)...
 pip install -r requirements.txt
 pip install unrpa pyinstaller pywebview
 
 echo.
-echo [3/7] Compilando unrpyc (master) -- pula se ja existir...
+echo [3/8] Compilando unrpyc (master) -- pula se ja existir...
 if not exist unrpyc_master.exe (
     pushd tools\unrpyc_master
     pyinstaller --onefile --name unrpyc_master unrpyc.py
@@ -55,7 +55,7 @@ if not exist unrpyc_master.exe (
 )
 
 echo.
-echo [4/7] Compilando o app GUI em modo pasta (--onedir)...
+echo [4/8] Compilando o app GUI em modo pasta (--onedir)...
 echo (--onedir nao tem o bug de icone que o --onefile tem em apps
 echo  --windowed do PyInstaller; o instalador do Inno Setup e' quem
 echo  vai entregar isso como 1 arquivo so' pro usuario final)
@@ -72,7 +72,7 @@ if not exist "dist\TranslateVN-GUI\TranslateVN-GUI.exe" (
 )
 
 echo.
-echo [5/7] Procurando o compilador do Inno Setup (ISCC.exe)...
+echo [5/8] Procurando o compilador do Inno Setup (ISCC.exe)...
 set "ISCC="
 if exist "%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe" set "ISCC=%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe"
 if not defined ISCC if exist "%ProgramFiles%\Inno Setup 6\ISCC.exe" set "ISCC=%ProgramFiles%\Inno Setup 6\ISCC.exe"
@@ -90,11 +90,26 @@ if not defined ISCC (
 echo Encontrado: %ISCC%
 
 echo.
-echo [6/7] Compilando o instalador com Inno Setup...
-"%ISCC%" installer.iss
+echo [6/8] Lendo versao do arquivo VERSION...
+if not exist VERSION (
+    echo ERRO: arquivo VERSION nao encontrado na raiz do projeto.
+    echo Crie um arquivo VERSION com uma linha tipo "0.4.0" antes de continuar.
+    exit /b 1
+)
+set "APP_VERSION="
+set /p APP_VERSION=<VERSION
+if not defined APP_VERSION (
+    echo ERRO: arquivo VERSION esta vazio.
+    exit /b 1
+)
+echo Versao: %APP_VERSION%
 
 echo.
-echo [7/7] Pronto! Instalador final em: Output\TranslateVN-Setup.exe
+echo [7/8] Compilando o instalador com Inno Setup...
+"%ISCC%" /DMyAppVersion=%APP_VERSION% installer.iss
+
+echo.
+echo [8/8] Pronto! Instalador final em: Output\TranslateVN-Setup.exe
 echo Distribua APENAS esse arquivo. Ele instala o app, cria os
 echo atalhos com o icone certo e um desinstalador.
 echo.
