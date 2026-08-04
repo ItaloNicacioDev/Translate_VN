@@ -294,6 +294,18 @@ class Api:
                 translation_language=self.project_manager.get_default_language()
             )
 
+            # Diagnóstico só-leitura (dry_run) logo na criação do
+            # projeto: avisa cedo se o jogo já vem com algum conflito
+            # (ex: um mod/patch antigo deixou glitch.rpy + glitch_ren.py
+            # na mesma pasta) antes mesmo de gerar qualquer tradução.
+            # Não corrige nada aqui -- o usuário ainda não pediu isso.
+            from pathlib import Path
+            self._run_analyzer_plugins(
+                Path(info["root_path"]) / "game",
+                stage="criação do projeto",
+                dry_run=True,
+            )
+
             return self.project_manager.open(name)
 
         return self._wrap(_create)
@@ -775,15 +787,108 @@ class Api:
 
             game_folder = Path(project["game_path"]) / "game"
 
+            # Antes de copiar qualquer arquivo de tradução para dentro
+            # de game/, roda todos os plugins "analyzer" instalados
+            # (ex: FixTranslateVN) para detectar e corrigir conflitos
+            # já existentes na pasta (base_name duplicado, .rpyc
+            # órfão, encoding inconsistente, etc). Isso evita que uma
+            # sujeira pré-existente vire um crash tipo "X.rpy and
+            # X_ren.py conflict" na hora de abrir o jogo.
+            self._run_analyzer_plugins(game_folder, stage="pré-instalação")
+
             self.patcher.apply_patch(
                 str(exports_folder),
                 str(game_folder),
                 create_backup=bool(create_backup)
             )
 
+            # Roda de novo depois de copiar os arquivos: pega qualquer
+            # conflito que a própria cópia da tradução tenha introduzido
+            # (ex: um arquivo de tradução com o mesmo base_name de um
+            # script nativo do jogo).
+            self._run_analyzer_plugins(game_folder, stage="pós-instalação")
+
             return {"applied": True}
 
         return self._wrap(_apply)
+
+    def _run_analyzer_plugins(self, game_folder, stage: str, dry_run: bool = False):
+        """Roda todos os plugins ativados do tipo 'analyzer' (ex:
+        FixTranslateVN) contra a pasta game/ do jogo-alvo.
+
+        Com dry_run=False (padrão, usado antes/depois de aplicar uma
+        tradução), aplica correções automáticas de forma segura --
+        tudo que é movido vai para _quarantine/, nada é apagado de
+        verdade, e dá pra desfazer. Com dry_run=True (usado na criação
+        do projeto), só relata os problemas sem tocar em nada.
+
+        É uma camada de proteção best-effort: se não houver nenhum
+        plugin analyzer instalado/ativado, ou se um plugin falhar, o
+        fluxo principal do Translate VN NUNCA é bloqueado por causa
+        disso -- só registramos no log.
+        """
+        try:
+            analyzers = self.plugin_manager.get_plugins_by_type("analyzer")
+        except Exception as exc:
+            self.logger.warning(
+                f"Não foi possível consultar plugins analyzer ({stage}): {exc}"
+            )
+            return
+
+        if not analyzers:
+            return
+
+        for plugin in analyzers:
+            plugin_name = plugin.get_metadata().name
+
+            try:
+                result = plugin.analyze({
+                    "game_path": str(game_folder),
+                    "dry_run": dry_run,
+                })
+            except Exception as exc:
+                self.logger.error(
+                    f"Plugin '{plugin_name}' falhou durante diagnóstico "
+                    f"({stage}): {exc}"
+                )
+                continue
+
+            if not result.get("success"):
+                self.logger.warning(
+                    f"Plugin '{plugin_name}' reportou erro ({stage}): "
+                    f"{result.get('error')}"
+                )
+                continue
+
+            found = result.get("issues_found", 0)
+            applied = result.get("issues_applied", 0)
+
+            if not found:
+                continue
+
+            if dry_run:
+                self.logger.warning(
+                    f"[{plugin_name}] {found} problema(s) encontrado(s) "
+                    f"em game/ ({stage}). Nada foi alterado ainda -- "
+                    f"serão corrigidos automaticamente quando a tradução "
+                    f"for aplicada. Log: {result.get('log_path')}"
+                )
+                continue
+
+            if applied:
+                self.logger.info(
+                    f"[{plugin_name}] {applied}/{found} problema(s) "
+                    f"corrigido(s) automaticamente em game/ ({stage}). "
+                    f"Log: {result.get('log_path')}"
+                )
+
+            manual = found - applied
+            if manual:
+                self.logger.warning(
+                    f"[{plugin_name}] {manual} problema(s) em game/ "
+                    f"precisam de revisão manual ({stage}). "
+                    f"Log: {result.get('log_path')}"
+                )
 
     def remove_translation(self):
 
@@ -801,6 +906,11 @@ class Api:
                 )
 
             removed = self.patcher.remove_patch(str(game_folder))
+
+            # Depois de remover a tradução, roda os analyzers de novo:
+            # a remoção pode deixar .rpyc órfão (sem o .rpy que o
+            # gerou) para trás.
+            self._run_analyzer_plugins(game_folder, stage="pós-remoção")
 
             return {"removed": removed}
 
