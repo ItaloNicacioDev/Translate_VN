@@ -420,6 +420,10 @@
     0%,100%{box-shadow:0 0 0 0 rgba(126,227,184,.35);}
     50%{box-shadow:0 0 0 6px rgba(126,227,184,0);}
   }
+  .about-version-tag{
+    font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;
+    color:var(--text-faint);vertical-align:middle;margin-left:6px;
+  }
   .update-modal{max-width:480px;}
   .update-version-row{
     display:flex;align-items:center;gap:10px;
@@ -742,7 +746,7 @@
     <div class="about-header">
       <div class="about-logo">📖</div>
       <div class="about-title">
-        <h2>Translate VN</h2>
+        <h2>Translate VN <span id="aboutCurrentVersion" class="about-version-tag">v…</span></h2>
         <span data-i18n="about_tagline">Estúdio de tradução de visual novels Ren'Py</span>
       </div>
     </div>
@@ -754,7 +758,7 @@
 
         <div class="changelog-entry">
           <div class="changelog-version">
-            <span class="changelog-vtag">v0.3.2</span>
+            <span class="changelog-vtag">v0.3.1</span>
             <span class="changelog-date">2026-08-04</span>
           </div>
           <ul class="changelog-items">
@@ -1367,9 +1371,15 @@
   // Sobre — modal com changelog e canal de suporte via GitHub Issues
   // ===========================================================
 
-  function openAboutModal(){
+  async function openAboutModal(){
     document.getElementById('aboutModal').classList.add('show');
     applyLanguage(state.uiLang);
+
+    // Versão real do app rodando agora, lida do backend
+    // (core/version.py -> arquivo VERSION), nunca hardcoded aqui.
+    const version = await callApi('get_app_version');
+    const tag = document.getElementById('aboutCurrentVersion');
+    if(tag) tag.textContent = version ? `v${version}` : '';
   }
   function closeAboutModal(){
     document.getElementById('aboutModal').classList.remove('show');
