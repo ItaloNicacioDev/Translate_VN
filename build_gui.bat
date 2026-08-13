@@ -31,6 +31,7 @@ if exist unrpyc_master.exe del /q unrpyc_master.exe
 if exist build rmdir /s /q build
 if exist dist rmdir /s /q dist
 if exist Output rmdir /s /q Output
+if exist "%TEMP%\TranslateVN-Setup-Build" rmdir /s /q "%TEMP%\TranslateVN-Setup-Build"
 if exist TranslateVN-GUI.spec del /q TranslateVN-GUI.spec
 
 echo.
@@ -110,6 +111,14 @@ echo Versao: %APP_VERSION%
 echo.
 echo [7/8] Compilando o instalador com Inno Setup...
 "%ISCC%" /DMyAppVersion=%APP_VERSION% installer.iss
+
+if not exist "%TEMP%\TranslateVN-Setup-Build\TranslateVN-Setup.exe" (
+    echo ERRO: compilacao do Inno Setup falhou, o instalador final nao foi gerado em %TEMP%\TranslateVN-Setup-Build.
+    exit /b 1
+)
+
+if not exist Output mkdir Output
+copy /Y "%TEMP%\TranslateVN-Setup-Build\TranslateVN-Setup.exe" "Output\TranslateVN-Setup.exe"
 
 echo.
 echo [8/8] Pronto! Instalador final em: Output\TranslateVN-Setup.exe

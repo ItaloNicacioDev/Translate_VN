@@ -42,7 +42,9 @@ RestartApplications=yes
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
-OutputDir=Output
+; Usa a pasta temporaria do Windows para evitar que o antivrus
+; bloqueie o arquivo enquanto o Inno Setup atualiza os recursos do exe.
+OutputDir={tmp}\TranslateVN-Setup-Build
 OutputBaseFilename=TranslateVN-Setup
 SetupIconFile=app_icon.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
