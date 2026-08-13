@@ -51,6 +51,9 @@ SolidCompression=yes
 WizardStyle=modern
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=lowest
+; Tira o restart de Windows para auto-update funcionar melhor
+AllowUNCPath=no
+DirExistsWarning=no
 
 [Languages]
 Name: "brazilianportuguese"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
@@ -74,6 +77,25 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilen
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent
 ; Auto-atualizacao silenciosa (disparada de dentro do proprio app,
 ; ver core/updater.py): reabre o Translate VN sozinho ao terminar,
-; sem precisar de nenhum clique -- so' roda quando o Setup for
-; executado com /VERYSILENT (WizardSilent = True).
-Filename: "{app}\{#MyAppExeName}"; Flags: nowait postinstall; Check: WizardSilent
+; sem precisar de nenhum clique.
+Filename: "{app}\{#MyAppExeName}"; Flags: nowait postinstall; Check: ShouldRunApp
+
+[Code]
+var
+  IsUpdateMode: Boolean;
+
+procedure InitializeWizard();
+begin
+  // Detecta se o instalador foi rodado em modo silencioso (auto-update)
+  IsUpdateMode := (ExpandConstant('{param:verysilent}') <> '');
+  if IsUpdateMode then
+  begin
+    Log('Modo de atualização silenciosa detectado');
+  end;
+end;
+
+function ShouldRunApp(): Boolean;
+begin
+  // Retorna TRUE para executar o app no final se for modo silencioso
+  Result := IsUpdateMode;
+end;
