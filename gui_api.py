@@ -1202,10 +1202,12 @@ class Api:
         return {"ok": True, "data": None}
 
     def install_update(self):
-        """Dispara o instalador silencioso e fecha o app atual logo
-        em seguida, pra liberar os arquivos que o Inno Setup precisa
-        sobrescrever. O proprio instalador reabre o app sozinho ao
-        terminar (ver installer.iss)."""
+        """Dispara o instalador interativo (com interface visual)
+        e fecha o app atual logo em seguida, pra liberar os arquivos
+        que o Inno Setup precisa sobrescrever. O usuario vera a tela
+        normal do instalador e podera clicar em 'Proximo', 'Instalar',
+        etc. O proprio instalador reabre o app sozinho ao terminar
+        (ver installer.iss)."""
 
         # Guarda explícita: só prossegue se o download foi concluído
         # com sucesso (updater._download_path preenchido por
