@@ -63,6 +63,7 @@ pyinstaller --onedir --windowed --name TranslateVN-GUI ^
   --icon "app_icon.ico" ^
   --add-binary "unrpyc_master.exe;tools\unrpyc_master" ^
   --add-data "ui;ui" ^
+  --add-data "VERSION;." ^
   --runtime-hook hook_extract_tools.py ^
   gui_main.py
 
