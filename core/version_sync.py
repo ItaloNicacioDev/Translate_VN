@@ -47,16 +47,31 @@ def sync_if_needed():
     """
     try:
         # Quando rodando congelado (PyInstaller --onedir), sys._MEIPASS aponta
-        # para a pasta raiz do app. Quando rodando via 'python', usamos __file__.
+        # para _internal/. Quando rodando via 'python', usamos __file__.
         base_path = getattr(sys, "_MEIPASS", None)
         if base_path is None:
+            # Modo desenvolvimento: procura na raiz do projeto
             script_dir = Path(__file__).parent  # core/
             base_path = script_dir.parent  # raiz do projeto
         else:
+            # Modo congelado: base_path já aponta para _internal/
             base_path = Path(base_path)
+            # O VERSION está um nível acima de _internal (na raiz da instalação)
+            # Mas quando congelado, a pasta pai de _internal é o exe folder
+            # Precisa procurar no mesmo nível de _internal/
+            base_path = Path(base_path).parent  # Vai para pasta do .exe
+            if not (base_path / "VERSION").exists():
+                # Se não encontrou, talvez esteja dentro de _internal/
+                base_path = Path(getattr(sys, "_MEIPASS", "."))
 
         version_file = base_path / "VERSION"
         version_py = base_path / "core" / "version.py"
+
+        # Se não achou, procura dentro de _internal (quando congelado)
+        if not version_py.exists() and "MEIPASS" in str(getattr(sys, "_MEIPASS", "")):
+            meipass = Path(getattr(sys, "_MEIPASS"))
+            version_py = meipass / "core" / "version.py"
+            version_file = meipass / "VERSION"
 
         if not version_file.exists() or not version_py.exists():
             return  # Arquivos não encontrados, pula sincronização
