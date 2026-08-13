@@ -1415,6 +1415,7 @@
   // ===========================================================
 
   let updateInfo = null;
+  let _updateRunning = false;  // guarda contra eventos duplicados de onUpdateError/onUpdateReady
 
   window.onUpdateAvailable = function(info){
     updateInfo = info;
@@ -1434,19 +1435,31 @@
   };
 
   window.onUpdateReady = function(){
+    if(!_updateRunning) return;  // ignora eventos duplicados
+    _updateRunning = false;
     const btn = document.getElementById('btnUpdateStart');
     btn.disabled = false;
     btn.innerHTML = `<span data-i18n="update_restart_install">Reiniciar e instalar agora</span>`;
     btn.onclick = confirmInstallUpdate;
-    document.getElementById('updateProgressLabel').textContent = tr('update_ready_label');
+    const label = document.getElementById('updateProgressLabel');
+    label.style.color = '';  // restaura cor padrão
+    label.textContent = tr('update_ready_label');
   };
 
   window.onUpdateError = function(payload){
+    _updateRunning = false;
     const btn = document.getElementById('btnUpdateStart');
     btn.disabled = false;
     btn.innerHTML = `<span data-i18n="update_download_install">Baixar e instalar</span>`;
     btn.onclick = startUpdateDownload;
-    alert(payload.error || tr('update_error_generic'));
+    // Mostra o erro dentro do modal em vez de alert() nativo,
+    // que pode travar a thread JS no pywebview e reaparecer
+    // múltiplas vezes se o backend empurrar vários eventos de erro.
+    const label = document.getElementById('updateProgressLabel');
+    label.textContent = payload.error || tr('update_error_generic');
+    label.style.color = 'var(--error, #e05252)';
+    document.getElementById('updateProgressWrap').style.display = 'block';
+    document.getElementById('updateProgressFill').style.width = '0%';
   };
 
   function formatBytes(bytes){
@@ -1457,11 +1470,15 @@
 
   function openUpdateModal(){
     if(!updateInfo) return;
+    _updateRunning = false;  // garante estado limpo ao (re)abrir o modal
     document.getElementById('updateFromVersion').textContent = `v${updateInfo.current_version}`;
     document.getElementById('updateToVersion').textContent = `v${updateInfo.latest_version}`;
     document.getElementById('updateNotes').textContent = updateInfo.notes || tr('update_no_notes');
     document.getElementById('updateProgressWrap').style.display = 'none';
     document.getElementById('updateProgressFill').style.width = '0%';
+    const label = document.getElementById('updateProgressLabel');
+    label.style.color = '';  // limpa vermelho de erro anterior
+    label.textContent = '0%';
     const btn = document.getElementById('btnUpdateStart');
     btn.disabled = false;
     btn.innerHTML = `<span data-i18n="update_download_install">Baixar e instalar</span>`;
@@ -1470,6 +1487,11 @@
   }
   function closeUpdateModal(){
     document.getElementById('updateModal').classList.remove('show');
+    // Se o usuário fechou o modal enquanto o download estava em curso,
+    // resetamos a flag para permitir uma nova tentativa ao reabrir.
+    if(_updateRunning){
+      _updateRunning = false;
+    }
   }
 
   async function checkForUpdatesManually(){
@@ -1485,13 +1507,19 @@
   }
 
   async function startUpdateDownload(){
+    if(_updateRunning) return;  // evita disparar dois downloads simultâneos
+    _updateRunning = true;
     document.getElementById('updateProgressWrap').style.display = 'block';
     document.getElementById('updateProgressFill').style.width = '0%';
-    document.getElementById('updateProgressLabel').textContent = '0%';
+    const label = document.getElementById('updateProgressLabel');
+    label.style.color = '';   // limpa vermelho de erro anterior
+    label.textContent = '0%';
     const btn = document.getElementById('btnUpdateStart');
     btn.disabled = true;
     btn.innerHTML = `<span data-i18n="update_downloading">Baixando…</span>`;
     await callApi('download_update');
+    // callApi retorna imediatamente (download roda em thread no backend);
+    // o resultado real chega via onUpdateReady ou onUpdateError.
   }
 
   async function confirmInstallUpdate(){
@@ -1895,4 +1923,3 @@
 </script>
 </body>
 </html>
-
