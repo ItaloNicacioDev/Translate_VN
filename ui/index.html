@@ -1534,7 +1534,14 @@
 
   async function confirmInstallUpdate(){
     if(!confirm(tr('update_confirm_restart'))) return;
-    await callApi('install_update');
+    const result = await callApi('install_update');
+    // Se houve erro, o install_update retorna {"ok": false, "error": "..."}
+    // e o backend NÃO fecha o app. Mostra o erro pra o usuário.
+    if(result && !result.ok) {
+      alert(`Erro ao instalar: ${result.error}`);
+    }
+    // Se result.ok === true, o backend já disparou install_and_restart()
+    // e está fechando o app em segundo plano (threading.Timer)
   }
 
   // ===========================================================

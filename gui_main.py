@@ -17,6 +17,11 @@ import os
 import threading
 import webview
 
+# Sincroniza a versão entre VERSION (raiz) e core/version.py
+# antes de qualquer coisa que use APP_VERSION
+from core.version_sync import sync_if_needed
+sync_if_needed()
+
 from gui_api import Api, attach_gui_log_handler
 
 
