@@ -217,6 +217,9 @@ class Updater:
                 f"recebido {actual_size} bytes. Tente novamente."
             )
 
+        # Torna o arquivo executável (importante no Linux, não prejudica Windows)
+        os.chmod(dest_path, 0o755)
+
         self._download_path = dest_path
 
         return dest_path

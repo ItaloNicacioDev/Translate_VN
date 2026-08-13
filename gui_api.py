@@ -1168,6 +1168,7 @@ class Api:
         def _run():
             try:
                 info = self._update_info or self.updater.check_for_update()
+                self.logger.info(f"Download info: available={info.get('available')}, url={info.get('download_url')}")
 
                 if not info.get("available") or not info.get("download_url"):
                     self._push("onUpdateError", {
@@ -1184,14 +1185,16 @@ class Api:
                         )
                     })
 
-                self.updater.download_installer(info["download_url"], _progress)
+                self.logger.info(f"Iniciando download do instalador: {info['download_url']}")
+                installer_path = self.updater.download_installer(info["download_url"], _progress)
+                self.logger.info(f"Instalador baixado com sucesso em: {installer_path}")
 
                 self._push("onUpdateReady", {
                     "version": info.get("latest_version")
                 })
 
             except Exception as error:
-                self.logger.error(str(error))
+                self.logger.error(f"Erro ao baixar atualização: {str(error)}")
                 self._push("onUpdateError", {"error": str(error)})
 
         threading.Thread(target=_run, daemon=True).start()
