@@ -18,6 +18,7 @@ Fluxo:
 
 import os
 import re
+import sys
 from pathlib import Path
 
 
@@ -41,13 +42,21 @@ def sync_if_needed():
     """
     Compara VERSION (raiz) com core/version.py:APP_VERSION.
     Se forem diferentes, atualiza core/version.py automaticamente.
+    Funciona tanto rodando com 'python gui_main.py' quanto congelado
+    em .exe pelo PyInstaller.
     """
     try:
-        # Localiza a raiz do projeto
-        script_dir = Path(__file__).parent  # core/
-        root_dir = script_dir.parent  # raiz do projeto
-        version_file = root_dir / "VERSION"
-        version_py = script_dir / "version.py"
+        # Quando rodando congelado (PyInstaller --onedir), sys._MEIPASS aponta
+        # para a pasta raiz do app. Quando rodando via 'python', usamos __file__.
+        base_path = getattr(sys, "_MEIPASS", None)
+        if base_path is None:
+            script_dir = Path(__file__).parent  # core/
+            base_path = script_dir.parent  # raiz do projeto
+        else:
+            base_path = Path(base_path)
+
+        version_file = base_path / "VERSION"
+        version_py = base_path / "core" / "version.py"
 
         if not version_file.exists() or not version_py.exists():
             return  # Arquivos não encontrados, pula sincronização
