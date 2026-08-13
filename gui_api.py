@@ -1217,23 +1217,29 @@ class Api:
             return {"ok": False, "error": msg}
 
         try:
+            installer_path = self.updater._download_path
+            self.logger.info(f"Iniciando instalação do arquivo: {installer_path}")
             self.updater.install_and_restart()
+            self.logger.info("Processo de instalação disparado com sucesso")
         except Exception as error:
-            self.logger.error(str(error))
-            return {"ok": False, "error": str(error)}
+            error_msg = str(error)
+            self.logger.error(f"Erro ao instalar: {error_msg}")
+            return {"ok": False, "error": error_msg}
 
         import webview
 
         def _close_later():
             try:
+                self.logger.info("Fechando aplicação para liberar arquivos")
                 webview.windows[0].destroy()
-            except Exception:
-                pass
+            except Exception as e:
+                self.logger.error(f"Erro ao fechar janela: {str(e)}")
 
-        # Delay maior que o do quit_app normal: o instalador ainda
-        # precisa terminar de subir (extrair o proprio setup etc)
-        # antes da gente soltar o lock do nosso proprio .exe.
-        threading.Timer(1.2, _close_later).start()
+        # Delay aumentado: o Inno Setup precisa de tempo para:
+        # 1. Extrair arquivos
+        # 2. Fechar a aplicação via mutex
+        # 3. Sobrescrever os arquivos
+        threading.Timer(2.0, _close_later).start()
 
         return {"ok": True, "data": None}
 
