@@ -60,6 +60,20 @@ class Updater:
 
     def __init__(self):
         self._download_path = None
+        self._expected_size = None  # tamanho esperado do asset (bytes)
+        self._clear_stale_download()
+
+    def _clear_stale_download(self):
+        """Remove qualquer instalador incompleto deixado por uma
+        sessão anterior, evitando que install_and_restart() use um
+        .exe corrompido ou de uma versão antiga."""
+        dest_dir = os.path.join(tempfile.gettempdir(), "TranslateVN_Update")
+        dest_path = os.path.join(dest_dir, self.ASSET_NAME)
+        if os.path.exists(dest_path):
+            try:
+                os.remove(dest_path)
+            except Exception:
+                pass
 
     # -------------------------------------------------
     # Comparacao de versao (semver simplificado, sem
@@ -119,6 +133,9 @@ class Updater:
         asset = self._find_installer_asset(release.get("assets", []) or [])
 
         available = bool(remote_tag) and self.is_newer(remote_tag) and asset is not None
+
+        if available:
+            self._expected_size = asset.get("size")
 
         return {
             "available": available,
@@ -186,6 +203,19 @@ class Updater:
 
         except Exception as error:
             raise UpdateError(f"Falha ao baixar atualizacao: {error}")
+
+        # Valida tamanho: se o GitHub informou o tamanho do asset e o
+        # arquivo baixado diverge, o download foi corrompido/incompleto.
+        actual_size = os.path.getsize(dest_path)
+        if self._expected_size and actual_size != self._expected_size:
+            try:
+                os.remove(dest_path)
+            except Exception:
+                pass
+            raise UpdateError(
+                f"Download corrompido: esperado {self._expected_size} bytes, "
+                f"recebido {actual_size} bytes. Tente novamente."
+            )
 
         self._download_path = dest_path
 
