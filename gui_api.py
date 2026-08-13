@@ -1204,6 +1204,15 @@ class Api:
         sobrescrever. O proprio instalador reabre o app sozinho ao
         terminar (ver installer.iss)."""
 
+        # Guarda explícita: só prossegue se o download foi concluído
+        # com sucesso (updater._download_path preenchido por
+        # download_installer). Evita reiniciar o app sem ter um
+        # instalador válido em mãos.
+        if not self.updater._download_path:
+            msg = "O download ainda não foi concluído. Aguarde ou tente novamente."
+            self.logger.error(msg)
+            return {"ok": False, "error": msg}
+
         try:
             self.updater.install_and_restart()
         except Exception as error:
