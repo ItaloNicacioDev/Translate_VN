@@ -385,3 +385,44 @@ class Database:
         )
 
         return row["id"] if row else None
+
+    def update_project(self, project_id: int, **updates):
+
+        """Atualiza campos arbitrários de um projeto na tabela projects.
+
+        Ex: update_project(5, language_original="en")
+
+        Não permite atualizar a chave primária (id).
+        """
+
+        allowed = {
+
+            "name", "engine", "version", "game_path",
+
+            "language_original", "language_translation", "updated_at"
+
+        }
+
+        sets = []
+
+        params = []
+
+        for key, value in updates.items():
+
+            if key not in allowed:
+
+                continue
+
+            sets.append(f"{key}=?")
+
+            params.append(value)
+
+        if not sets:
+
+            return
+
+        params.append(project_id)
+
+        query = f"UPDATE projects SET {', '.join(sets)} WHERE id=?"
+
+        self.execute(query, tuple(params))
