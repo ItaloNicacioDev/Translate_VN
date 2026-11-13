@@ -682,6 +682,20 @@
           <p class="eyebrow" data-i18n="project_eyebrow">Projeto</p>
           <h3 id="projectName">Busca Llamas</h3>
         </div>
+
+        <!-- Idioma detectado do jogo (origem) -->
+        <div class="lang-chip" id="langChip" style="margin:8px 0;padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:var(--bg-input);font-size:12px;display:none;">
+          <div style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Idioma de origem</div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span id="langChipSource" style="font-family:'JetBrains Mono',monospace;color:var(--text-primary);font-weight:600;">—</span>
+            <span id="langChipTl" style="font-size:11px;color:var(--text-muted);">—</span>
+          </div>
+          <div style="margin-top:6px;">
+            <input id="langOverrideInput" type="text" placeholder="ex: en" style="width:70px;padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:var(--bg-input);color:var(--text-primary);font-size:11px;font-family:'JetBrains Mono',monospace;">
+            <button id="btnLangOverride" onclick="saveLangOverride()" style="padding:4px 10px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);cursor:pointer;font-size:11px;font-weight:600;">Salvar</button>
+          </div>
+        </div>
+
         <button class="side-btn" onclick="runAction('detectar', this)"><span class="dot"></span><span data-i18n="side_detect">Detectar jogo</span></button>
         <button class="side-btn" onclick="runAction('extrair', this)"><span class="dot"></span><span data-i18n="side_extract">Extrair arquivos</span></button>
         <button class="side-btn" onclick="runAction('ler', this)"><span class="dot"></span><span data-i18n="side_read">Ler diálogos (indexar)</span></button>
@@ -1198,6 +1212,8 @@
     const project = await callApi('open_project', nome);
     if(!project) return;
     state.currentProjectName = nome;
+    state.currentProject = project;
+
     document.getElementById('projectName').textContent = nome;
     resetStatusPanel();
     nav('project');
