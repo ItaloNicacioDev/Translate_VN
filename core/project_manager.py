@@ -374,3 +374,47 @@ class ProjectManager:
             f"Projeto '{name}' atualizado: {', '.join(updates)}"
 
         )
+
+    # ===================================================
+    # Memória de tradução
+    # ===================================================
+
+    def save_translation_memory(
+        self,
+        original: str,
+        translated: str,
+        source_lang: str | None,
+        target_lang: str
+    ):
+        self.database.save_translation_memory(
+            original, translated, source_lang, target_lang
+        )
+
+    def get_translation_memory(
+        self,
+        original: str,
+        source_lang: str | None,
+        target_lang: str
+    ):
+        return self.database.get_translation_memory(
+            original, source_lang, target_lang
+        )
+
+    def get_all_translation_memory(
+        self,
+        source_lang: str | None = None,
+        target_lang: str | None = None
+    ):
+        return self.database.get_all_translation_memory(
+            source_lang, target_lang
+        )
+
+    def search_translation_memory(
+        self,
+        query_text: str,
+        source_lang: str | None,
+        target_lang: str | None
+    ):
+        return self.database.search_translation_memory(
+            query_text, source_lang, target_lang
+        )
