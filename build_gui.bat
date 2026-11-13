@@ -41,6 +41,9 @@ if not exist build_env (
 )
 call build_env\Scripts\activate.bat
 
+:: Garante que scripts do Python do usuario (pip install --user) estejam no PATH
+set "PATH=%APPDATA%\Python\Python314\Scripts;%PATH%"
+
 echo.
 echo [2/8] Instalando dependencias (inclui pywebview)...
 pip install -r requirements.txt
@@ -50,7 +53,7 @@ echo.
 echo [3/8] Compilando unrpyc (master) -- pula se ja existir...
 if not exist unrpyc_master.exe (
     pushd tools\unrpyc_master
-    pyinstaller --onefile --name unrpyc_master unrpyc.py
+    python -m pyinstaller --onefile --name unrpyc_master unrpyc.py
     popd
     copy /Y tools\unrpyc_master\dist\unrpyc_master.exe unrpyc_master.exe
 )
@@ -60,7 +63,7 @@ echo [4/8] Compilando o app GUI em modo pasta (--onedir)...
 echo (--onedir nao tem o bug de icone que o --onefile tem em apps
 echo  --windowed do PyInstaller; o instalador do Inno Setup e' quem
 echo  vai entregar isso como 1 arquivo so' pro usuario final)
-pyinstaller --onedir --windowed --name TranslateVN-GUI ^
+python -m pyinstaller --onedir --windowed --name TranslateVN-GUI ^
   --icon "app_icon.ico" ^
   --add-binary "unrpyc_master.exe;tools\unrpyc_master" ^
   --add-data "ui;ui" ^
