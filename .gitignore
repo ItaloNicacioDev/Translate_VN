@@ -5,3 +5,4 @@ core/__pycache__/project_manager.cpython-314.pyc
 core/__pycache__/translator.cpython-314.pyc
 logs/2026-11-13.log
 tests/test_parser.py
+build_linux.sh
