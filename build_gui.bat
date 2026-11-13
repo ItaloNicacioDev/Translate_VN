@@ -50,7 +50,8 @@ echo.
 echo [3/8] Compilando unrpyc (master) -- pula se ja existir...
 if not exist unrpyc_master.exe (
     pushd tools\unrpyc_master
-    build_env\Scripts\python.exe -m pyinstaller --onefile --name unrpyc_master unrpyc.py
+    set "PATH=build_env\Scripts;%PATH%"
+    pyinstaller --onefile --name unrpyc_master unrpyc.py
     popd
     copy /Y tools\unrpyc_master\dist\unrpyc_master.exe unrpyc_master.exe
 )
@@ -60,7 +61,8 @@ echo [4/8] Compilando o app GUI em modo pasta (--onedir)...
 echo (--onedir nao tem o bug de icone que o --onefile tem em apps
 echo  --windowed do PyInstaller; o instalador do Inno Setup e' quem
 echo  vai entregar isso como 1 arquivo so' pro usuario final)
-build_env\Scripts\python.exe -m pyinstaller --onedir --windowed --name TranslateVN-GUI ^
+set "PATH=build_env\Scripts;%PATH%"
+pyinstaller --onedir --windowed --name TranslateVN-GUI ^
   --icon "app_icon.ico" ^
   --add-binary "unrpyc_master.exe;tools\unrpyc_master" ^
   --add-data "ui;ui" ^
@@ -82,6 +84,10 @@ if exist "%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe" set "ISCC=%ProgramFiles(x86
 if not defined ISCC if exist "%ProgramFiles%\Inno Setup 6\ISCC.exe" set "ISCC=%ProgramFiles%\Inno Setup 6\ISCC.exe"
 if not defined ISCC if exist "%LocalAppData%\Programs\Inno Setup 6\ISCC.exe" set "ISCC=%LocalAppData%\Programs\Inno Setup 6\ISCC.exe"
 if not defined ISCC if exist "E:\Documents\Inno Setup 6\ISCC.exe" set "ISCC=E:\Documents\Inno Setup 6\ISCC.exe"
+if not defined ISCC if exist "E:\Inno Setup 6\ISCC.exe" set "ISCC=E:\Inno Setup 6\ISCC.exe"
+if not defined ISCC if exist "E:\Inno Setup 7\ISCC.exe" set "ISCC=E:\Inno Setup 7\ISCC.exe"
+if not defined ISCC if exist "E:\Program Files\Inno Setup 7\ISCC.exe" set "ISCC=E:\Program Files\Inno Setup 7\ISCC.exe"
+if not defined ISCC if exist "E:\Program Files (x86)\Inno Setup 7\ISCC.exe" set "ISCC=E:\Program Files (x86)\Inno Setup 7\ISCC.exe"
 
 
 if not defined ISCC (
@@ -112,13 +118,10 @@ echo.
 echo [7/8] Compilando o instalador com Inno Setup...
 "%ISCC%" /DMyAppVersion=%APP_VERSION% installer.iss
 
-if not exist "%TEMP%\TranslateVN-Setup-Build\TranslateVN-Setup.exe" (
-    echo ERRO: compilacao do Inno Setup falhou, o instalador final nao foi gerado em %TEMP%\TranslateVN-Setup-Build.
+if not exist "Output\TranslateVN-Setup.exe" (
+    echo ERRO: compilacao do Inno Setup falhou, Output\TranslateVN-Setup.exe nao existe.
     exit /b 1
 )
-
-if not exist Output mkdir Output
-copy /Y "%TEMP%\TranslateVN-Setup-Build\TranslateVN-Setup.exe" "Output\TranslateVN-Setup.exe"
 
 echo.
 echo [8/8] Pronto! Instalador final em: Output\TranslateVN-Setup.exe
