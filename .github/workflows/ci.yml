@@ -113,7 +113,7 @@ jobs:
           if (-not (Test-Path "unrpyc_master.exe")) {
             Write-Host "unrpyc_master.exe não encontrado, compilando..."
             pushd tools\unrpyc_master
-            pyinstaller --onefile --name unrpyc_master unrpyc.py
+            python -m pyinstaller --onefile --name unrpyc_master unrpyc.py
             popd
             Copy-Item tools\unrpyc_master\dist\unrpyc_master.exe unrpyc_master.exe
           }
