@@ -1560,8 +1560,32 @@
     // e está fechando o app em segundo plano (threading.Timer)
   }
 
+  async function saveLangOverride(){
+
+    const input = document.getElementById('langOverrideInput');
+
+    const code = input.value.trim();
+
+    if(!code) return alert('Informe um código de idioma (ex: en, pt, ja).');
+
+    const result = await callApi('update_project_language', code);
+
+    if(result !== null){
+
+      alert('Idioma de origem salvo: ' + result.language_original);
+
+      const s = document.getElementById('langChipSource');
+
+      if(s) s.textContent = result.language_original;
+
+    }
+
+  }
+
   // ===========================================================
+
   // Plugins — conectados ao backend (plugin_manager.py via gui_api.py)
+
   // ===========================================================
 
   function pluginStatusShow(msg, type = 'info'){
@@ -1796,7 +1820,27 @@
     try{
       switch(key){
         case 'detectar':
+
           result = await callApi('detect');
+
+          if(result && document.getElementById('langChip')){
+
+            document.getElementById('langChip').style.display = 'block';
+
+            const s = document.getElementById('langChipSource');
+
+            const t = document.getElementById('langChipTl');
+
+            const i = document.getElementById('langOverrideInput');
+
+            if(s) s.textContent = result.source_language || '—';
+
+            if(t) t.textContent = (result.tl_languages||[]).length ? 'tl: '+(result.tl_languages||[]).join(', ') : 'tl: —';
+
+            if(i) i.value = result.source_language || '';
+
+          }
+
           break;
         case 'extrair':
           result = await callApi('extract');
