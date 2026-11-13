@@ -95,19 +95,37 @@ jobs:
           Write-Host "Inno Setup encontrado em: $iscc"
           echo "ISCC_PATH=$iscc" >> $env:GITHUB_ENV
 
+      - name: Diagnóstico antes do build
+        shell: pwsh
+        run: |
+          Write-Host "=== Conteúdo da raiz ==="
+          Get-ChildItem -Force
+          Write-Host "=== Conteúdo de tools/ ==="
+          Get-ChildItem -Force tools\
+          Write-Host "=== Conteúdo de tools/unrpyc_master/ ==="
+          Get-ChildItem -Force tools\unrpyc_master\
+          Write-Host "=== Versão ==="
+          Get-Content VERSION
+
       - name: Compilar unrpyc (master)
         shell: pwsh
         run: |
           if (-not (Test-Path "unrpyc_master.exe")) {
+            Write-Host "unrpyc_master.exe não encontrado, compilando..."
             pushd tools\unrpyc_master
             pyinstaller --onefile --name unrpyc_master unrpyc.py
             popd
             Copy-Item tools\unrpyc_master\dist\unrpyc_master.exe unrpyc_master.exe
           }
+          Write-Host "=== Após compilação do unrpyc ==="
+          Get-ChildItem -Force unrpyc_master.exe 2>$null | Select-Object Name, Length
+          Get-ChildItem -Force tools\unrpyc_master\dist\ 2>$null | Select-Object Name, Length
 
       - name: Build app com PyInstaller (--onedir)
         shell: pwsh
         run: |
+          Write-Host "=== Arquivos antes do PyInstaller ==="
+          Get-ChildItem -Force | Select-Object Name
           pyinstaller --onedir --windowed --name TranslateVN-GUI `
             --icon "app_icon.ico" `
             --add-binary "unrpyc_master.exe;tools\unrpyc_master" `
@@ -117,6 +135,14 @@ jobs:
             --add-data "VERSION;." `
             --runtime-hook hook_extract_tools.py `
             gui_main.py
+
+      - name: Diagnóstico após o PyInstaller
+        shell: pwsh
+        run: |
+          Write-Host "=== Conteúdo de dist/ ==="
+          Get-ChildItem -Force dist\ 2>$null | Select-Object Name
+          Write-Host "=== Conteúdo de dist/TranslateVN-GUI/ ==="
+          Get-ChildItem -Force dist\TranslateVN-GUI\ 2>$null | Select-Object Name
 
       - name: Verificar build
         shell: pwsh
@@ -196,18 +222,35 @@ jobs:
           pip install -r requirements.txt
           pip install unrpa pyinstaller pywebview
 
+      - name: Diagnóstico antes do build
+        run: |
+          echo "=== Conteúdo da raiz ==="
+          ls -la
+          echo "=== Conteúdo de tools/ ==="
+          ls -la tools/
+          echo "=== Conteúdo de tools/unrpyc_master/ ==="
+          ls -la tools/unrpyc_master/
+          echo "=== Versão ==="
+          cat VERSION
+
       - name: Compilar unrpyc (master)
         run: |
           if [ ! -f unrpyc_master ]; then
+            echo "unrpyc_master não encontrado, compilando..."
             pushd tools/unrpyc_master
             pyinstaller --onefile --name unrpyc_master unrpyc.py
             popd
             cp tools/unrpyc_master/dist/unrpyc_master unrpyc_master
             chmod +x unrpyc_master
           fi
+          echo "=== Após compilação do unrpyc ==="
+          ls -la unrpyc_master 2>/dev/null || true
+          ls -la tools/unrpyc_master/dist/ 2>/dev/null || true
 
       - name: Build app com PyInstaller (--onedir)
         run: |
+          echo "=== Arquivos antes do PyInstaller ==="
+          ls -la
           pyinstaller --onedir --name TranslateVN-GUI \
             --add-binary "unrpyc_master:tools/unrpyc_master" \
             --add-data "ui:ui" \
@@ -216,6 +259,13 @@ jobs:
             --add-data "VERSION:." \
             --runtime-hook hook_extract_tools.py \
             gui_main.py
+
+      - name: Diagnóstico após o PyInstaller
+        run: |
+          echo "=== Conteúdo de dist/ ==="
+          ls -la dist/ 2>/dev/null || true
+          echo "=== Conteúdo de dist/TranslateVN-GUI/ ==="
+          ls -la dist/TranslateVN-GUI/ 2>/dev/null || true
 
       - name: Empacotar em tar.gz
         run: |
