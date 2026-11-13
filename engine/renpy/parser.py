@@ -353,12 +353,16 @@ class RenPyParser:
 
             char = line[i]
 
-            if char == "\\" and i + 1 < length and line[i + 1] in ('"', "\\"):
+            if char == "\\" and i + 1 < length and line[i + 1] in ('"', '\\', "n"):
 
                 # Escape válido: inclui o caractere escapado como
                 # texto literal e pula os DOIS caracteres (barra +
                 # caractere), sem fechar a string.
-                buffer.append(line[i + 1])
+                # Barra-n vira quebra de linha real (como o Ren'Py faz).
+                if line[i + 1] == "n":
+                    buffer.append("\n")
+                else:
+                    buffer.append(line[i + 1])
                 i += 2
                 continue
 
@@ -471,7 +475,10 @@ class RenPyParser:
         if lowered.endswith(self.ASSET_EXTENSIONS):
             return True
 
-        if "/" in stripped and " " not in stripped:
+        # Caminho de asset sem espaço (ex: images/bg.png). Tags Ren'Py
+        # como {/b} tambem contam "/", entao nao tratamos como asset se
+        # houver chaves (sinal de tag/atributo dentro de uma fala).
+        if "/" in stripped and " " not in stripped and "{" not in stripped and "}" not in stripped:
             return True
 
         # identificador tipo "gallery_nav", "bg_forest-day": só
@@ -498,21 +505,6 @@ class RenPyParser:
         if stripped.lower() in self.UI_KEYWORDS:
             return True
 
-        # Palavra única sem espaço nem pontuação de frase — quase
-        # sempre é um identificador de código (nome de variável,
-        # tag de imagem, nome de tela, nome de idioma etc.),
-        # não diálogo real. "English", "Español", "Português"
-        # são exemplos comuns em menus de seleção de idioma.
-        # O limite de 25 chars evita descartar frases curtas
-        # que não tenham pontuação mas sejam texto real.
-        if (
-            " " not in stripped
-            and not any(c in stripped for c in ".,!?;:()[]{}'\"-…–—")
-            and len(stripped) <= 25
-            and re.fullmatch(r"[\w]+", stripped, re.UNICODE)
-            and "#" not in stripped
-        ):
-            return True
 
         return False
 
