@@ -81,7 +81,21 @@ class RenPyDetector(BaseEngine):
 
             "videos": [],
 
-            "executables": []
+            "executables": [],
+
+            # Idioma de ORIGEM detectado do jogo (ex: "en", "pt", "ja").
+
+            # Vem de config.language em options.rpy/gui.rpy e serve de dica
+
+            # pro tradutor (source_language) em vez de confiar só no "auto".
+
+            "source_language": None,
+
+            # Pastas de tradução já existentes em game/tl/ — indica se o jogo
+
+            # já é multilíngue e quais idiomas já vem com tradução nativa.
+
+            "tl_languages": []
 
         }
 
@@ -122,6 +136,12 @@ class RenPyDetector(BaseEngine):
             info["executables"].append(str(exe))
 
         self.logger.info("Jogo Ren'Py detectado.")
+
+        # Idioma de origem: lê config.language de options.rpy/gui.rpy, se existir.
+        info["source_language"] = self.detect_source_language(game_folder)
+
+        # Quais traduções nativas o jogo já traz em game/tl/.
+        info["tl_languages"] = self.list_tl_languages(game_folder)
 
         self.logger.info(
             f"{len(info['scripts'])} scripts encontrados."
@@ -178,6 +198,58 @@ class RenPyDetector(BaseEngine):
                 continue
 
         return "Desconhecida"
+
+    def detect_source_language(self, game_folder: str | Path) -> str | None:
+        """Tenta descobrir o idioma ORIGINAL do jogo lendo config.language
+        de options.rpy e gui.rpy (padrão Ren'Py: config.language = "en").
+
+        Retorna o código em minúsculas (ex: "en", "pt", "ja") ou None se não
+        conseguir determinar.
+        """
+
+        game_folder = Path(game_folder)
+        candidates = [
+            game_folder / "options.rpy",
+            game_folder / "gui.rpy",
+        ]
+
+        # Pega o valor entre aspas após config.language =
+        lang_regex = re.compile(
+            r'config\.language\s*=\s*["\']([a-zA-Z]{2}(?:_[A-Z]{2})?)[\"]\']',
+            re.IGNORECASE,
+        )
+
+        for file in candidates:
+            if not file.exists():
+                continue
+            try:
+                text = file.read_text(encoding="utf-8", errors="ignore")
+                match = lang_regex.search(text)
+                if match:
+                    return match.group(1).lower()
+            except Exception:
+                continue
+
+        return None
+
+    def list_tl_languages(self, game_folder: str | Path) -> list[str]:
+        """Lista os códigos de idioma das pastas existentes em game/tl/.
+
+        Ex: game/tl/English/, game/tl/Portugues/ -> ["english", "portugues"].
+        """
+
+        game_folder = Path(game_folder)
+        tl_base = game_folder / "tl"
+
+        if not tl_base.exists() or not tl_base.is_dir():
+            return []
+
+        languages = []
+        for child in tl_base.iterdir():
+            if child.is_dir():
+                languages.append(child.name.lower())
+
+        return sorted(languages)
 
     def is_renpy(self, game_path: str) -> bool:
 
