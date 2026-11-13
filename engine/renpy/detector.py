@@ -215,7 +215,7 @@ class RenPyDetector(BaseEngine):
 
         # Pega o valor entre aspas após config.language =
         lang_regex = re.compile(
-            r'config\.language\s*=\s*["\']([a-zA-Z]{2}(?:_[A-Z]{2})?)[\"]\']',
+            r"""config\.language\s*=\s*["']([a-zA-Z]{2}(?:_[A-Z]{2})?)["']""",
             re.IGNORECASE,
         )
 
