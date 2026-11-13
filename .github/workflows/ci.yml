@@ -124,8 +124,14 @@ jobs:
       - name: Build app com PyInstaller (--onedir)
         shell: pwsh
         run: |
-          Write-Host "=== Arquivos antes do PyInstaller ==="
+          Write-Host "=== Verificando pré-requisitos ==="
+          Write-Host "app_icon.ico existe: $(Test-Path app_icon.ico)"
+          Write-Host "unrpyc_master.exe existe: $(Test-Path unrpyc_master.exe)"
+          Write-Host "hook_extract_tools.py existe: $(Test-Path hook_extract_tools.py)"
+          Write-Host "VERSION conteúdo: $(Get-Content VERSION)"
+          Write-Host "=== Arquivos na raiz ==="
           Get-ChildItem -Force | Select-Object Name
+
           pyinstaller --onedir --windowed --name TranslateVN-GUI `
             --icon "app_icon.ico" `
             --add-binary "unrpyc_master.exe;tools\unrpyc_master" `
@@ -134,7 +140,10 @@ jobs:
             --add-data "engine;engine" `
             --add-data "VERSION;." `
             --runtime-hook hook_extract_tools.py `
+            --log-level DEBUG `
             gui_main.py
+
+          Write-Host "=== Código de saída do PyInstaller: $LASTEXITCODE ==="
 
       - name: Diagnóstico após o PyInstaller
         shell: pwsh
@@ -143,6 +152,8 @@ jobs:
           Get-ChildItem -Force dist\ 2>$null | Select-Object Name
           Write-Host "=== Conteúdo de dist/TranslateVN-GUI/ ==="
           Get-ChildItem -Force dist\TranslateVN-GUI\ 2>$null | Select-Object Name
+          Write-Host "=== Build files ==="
+          Get-ChildItem -Force *.spec 2>$null | Select-Object Name
 
       - name: Verificar build
         shell: pwsh
@@ -219,7 +230,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: Output/TranslateVN-Setup.exe
-          generate_release_notes: true
 
   # =========================================================
   # Build Linux — tarball via PyInstaller (sem Inno Setup)
