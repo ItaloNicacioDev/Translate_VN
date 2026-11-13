@@ -696,6 +696,19 @@
           </div>
         </div>
 
+        <button class="side-btn" onclick="toggleMemoryPanel()"><span class="dot"></span><span data-i18n="side_memory">Memória de tradução</span></button>
+
+        <!-- Painel de memória de tradução (mostrado/oculto via JS) -->
+        <div id="translationMemoryPanel" style="display:none;margin:8px 0;padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:var(--bg-input);font-size:12px;">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+            <input id="memorySearchInput" type="text" placeholder="Buscar na memória..." style="flex:1;padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-input);color:var(--text-primary);font-size:11px;font-family:'JetBrains Mono',monospace;">
+            <button onclick="loadTranslationMemory()" style="padding:4px 10px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);cursor:pointer;font-size:11px;font-weight:600;">Recarregar</button>
+          </div>
+          <div id="memoryList" style="max-height:200px;overflow-y:auto;font-size:11px;color:var(--text-muted);">
+            <p style="color:var(--text-faint);font-style:italic;">Carregando memória de tradução...</p>
+          </div>
+        </div>
+
         <button class="side-btn" onclick="runAction('detectar', this)"><span class="dot"></span><span data-i18n="side_detect">Detectar jogo</span></button>
         <button class="side-btn" onclick="runAction('extrair', this)"><span class="dot"></span><span data-i18n="side_extract">Extrair arquivos</span></button>
         <button class="side-btn" onclick="runAction('ler', this)"><span class="dot"></span><span data-i18n="side_read">Ler diálogos (indexar)</span></button>
@@ -923,7 +936,7 @@
       auto_backup_title:'Backup automático', auto_backup_desc:'Sugere criar backup por padrão ao aplicar uma tradução.',
       default_lang_title:'Idioma de tradução padrão', default_lang_desc:'Usado como destino sempre que um novo projeto é criado.',
       save_config_btn:'Salvar configurações', config_saved_banner:'Configurações salvas.',
-      project_eyebrow:'Projeto', side_detect:'Detectar jogo', side_extract:'Extrair arquivos',
+      project_eyebrow:'Projeto', side_detect:'Detectar jogo', side_extract:'Extrair arquivos', side_memory:'Memória de tradução',
       side_read:'Ler diálogos (indexar)', side_translate:'Traduzir automaticamente', side_review:'Revisar / editar diálogos',
       side_generate:'Gerar pacote de tradução', side_apply:'Aplicar tradução', side_remove:'Remover tradução',
       back_btn:'VOLTAR', status_title:'Status', log_empty:'Escolha uma ação ao lado para começar.',
@@ -1002,7 +1015,7 @@
       auto_backup_title:'Automatic backup', auto_backup_desc:'Suggests creating a backup by default when applying a translation.',
       default_lang_title:'Default translation language', default_lang_desc:'Used as the target whenever a new project is created.',
       save_config_btn:'Save settings', config_saved_banner:'Settings saved.',
-      project_eyebrow:'Project', side_detect:'Detect game', side_extract:'Extract files',
+      project_eyebrow:'Project', side_detect:'Detect game', side_extract:'Extract files', side_memory:'Translation memory',
       side_read:'Read dialogue (index)', side_translate:'Translate automatically', side_review:'Review / edit dialogue',
       side_generate:'Generate translation package', side_apply:'Apply translation', side_remove:'Remove translation',
       back_btn:'BACK', status_title:'Status', log_empty:'Choose an action on the left to get started.',
@@ -1584,7 +1597,69 @@
 
   // ===========================================================
 
-  // Plugins — conectados ao backend (plugin_manager.py via gui_api.py)
+    // ===========================================================
+  // Memória de tradução
+  // ===========================================================
+
+  let memoryPanelOpen = false;
+
+  function toggleMemoryPanel(){
+    const panel = document.getElementById('translationMemoryPanel');
+    const btns = document.querySelectorAll('button[onclick="toggleMemoryPanel()"]');
+    memoryPanelOpen = !memoryPanelOpen;
+    const panel = document.getElementById('translationMemoryPanel');
+    panel.style.display = memoryPanelOpen ? 'block' : 'none';
+    btns.forEach(b => b.classList.toggle('active', memoryPanelOpen));
+    if(memoryPanelOpen){
+      loadTranslationMemory();
+    }
+  }
+
+  async function loadTranslationMemory(){
+    const list = document.getElementById('memoryList');
+    const input = document.getElementById('memorySearchInput');
+    const query = input ? input.value.trim() : '';
+    list.innerHTML = '<p style="color:var(--text-faint);font-style:italic;">Carregando...</p>';
+
+    const method = query ? 'search_translation_memory' : 'get_translation_memory';
+    const result = await callApi(method, query);
+
+    if(result === null){
+      list.innerHTML = '<p style="color:var(--danger);">Erro ao carregar memória.</p>';
+      return;
+    }
+
+    if(!result.length){
+      list.innerHTML = '<p style="color:var(--text-faint);font-style:italic;">Nenhuma entrada na memória de tradução.</p>';
+      return;
+    }
+
+    list.innerHTML = result.map(r => `
+      <div style="border-bottom:1px solid var(--border-soft);padding:6px 0;">
+        <div style="font-size:12px;color:var(--text-primary);white-space:pre-wrap;">${escapeHtml(r.original)}</div>
+        <div style="font-size:12px;color:var(--success);white-space:pre-wrap;margin-top:2px;">&#8594; ${escapeHtml(r.translated)}</div>
+        <div style="font-size:10px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;margin-top:2px;">
+          ${r.source_lang || 'auto'} &rarr; ${r.target_lang} &middot; ${r.usage_count}x
+        </div>
+      </div>
+    `).join('');
+  }
+
+  let memoryDebounce = null;
+  function setupMemorySearch(){
+    const input = document.getElementById('memorySearchInput');
+    if(!input) return;
+    input.addEventListener('input', ()=>{
+      clearTimeout(memoryDebounce);
+      memoryDebounce = setTimeout(()=>{
+        loadTranslationMemory();
+      }, 300);
+    });
+  }
+
+  // ===========================================================
+
+// Plugins — conectados ao backend (plugin_manager.py via gui_api.py)
 
   // ===========================================================
 
@@ -1996,6 +2071,7 @@
     await loadProjects();
     populateDefaultLangSelect();
     await loadPlugins();
+    setupMemorySearch();
   });
 </script>
 </body>
