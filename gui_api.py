@@ -291,6 +291,15 @@ class Api:
                 engine=info["engine"],
                 version=info["version"],
                 game_path=info["root_path"],
+
+                # Idioma de origem detectado do jogo (config.language em
+
+                # options.rpy/gui.rpy). Serve de dica pro tradutor em vez
+
+                # de confiar apenas em "auto" para cada linha.
+
+                original_language=info.get("source_language") or "",
+
                 translation_language=self.project_manager.get_default_language()
             )
 
@@ -416,6 +425,18 @@ class Api:
             ).split("_")[0]
 
             self.translator.set_target_language(target)
+
+            # Idioma de ORIGEM detectado do projeto (ex: "en", "pt", "ja").
+
+            # Se o detector achou config.language no options.rpy/gui.rpy,
+
+            # usamos esse código direto. Senão, mantemos "auto" e o provedor
+
+            # (Google etc.) detecta por linha.
+
+            source = project.get("language_original") or "auto"
+
+            self.translator.set_source_language(source)
 
             unique_texts = []
             text_to_indices = {}
