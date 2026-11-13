@@ -451,28 +451,81 @@ class Api:
 
                 text_to_indices[text].append(index)
 
+            # Idiomas do projeto para consultar/salvar na memória
+            memory_source = project.get("language_original") or None
+            memory_target = project.get("language_translation", "pt_BR").split("_")[0]
+
+            # ---------------------------------------------------------
+            # Memória de tradução: reaproveita strings já traduzidas
+            # em projetos anteriores para o mesmo par de idiomas.
+            # ---------------------------------------------------------
+            memory_hits = 0
+            memory_results = {}   # text -> (translated, True)
+            texts_to_translate = []  # textos ainda não na memória
+
+            for text in unique_texts:
+                cached = self.project_manager.get_translation_memory(
+                    text, memory_source, memory_target
+                )
+                if cached:
+                    memory_results[text] = (cached, True)
+                    memory_hits += 1
+                else:
+                    texts_to_translate.append(text)
+
+            if memory_hits:
+                self.logger.info(
+                    f"{memory_hits} string(es) reaproveitada(s) da "
+                    "memória de tradução (sem chamar o provedor)."
+                )
+
             cancel_event = threading.Event()
             self._translate_cancel_event = cancel_event
 
             def _on_progress(success_count, total, eta_seconds):
-
                 self._push("onTranslateProgress", {
                     "success_count": success_count,
                     "total": total,
                     "eta_seconds": eta_seconds
                 })
 
-            try:
+            # Traduz apenas o que não está na memória
+            new_results = []
+            interrupted = False
 
-                results, interrupted = self._translate_with_progress(
-                    unique_texts,
-                    cancel_event=cancel_event,
-                    progress_callback=_on_progress
+            if texts_to_translate:
+                try:
+                    new_results, interrupted = self._translate_with_progress(
+                        texts_to_translate,
+                        cancel_event=cancel_event,
+                        progress_callback=_on_progress
+                    )
+                finally:
+                    self._translate_cancel_event = None
+
+            # Junta memória + traduções novas, na ordem de unique_texts
+            results = []
+            for text in unique_texts:
+                if text in memory_results:
+                    results.append(memory_results[text])
+                else:
+                    idx = texts_to_translate.index(text)
+                    results.append(new_results[idx])
+
+            # Salva as traduções novas na memória para reaproveitamento futuro
+            saved_to_memory = 0
+            for text, (translated, ok) in zip(texts_to_translate, new_results):
+                if ok and translated:
+                    self.project_manager.save_translation_memory(
+                        text, translated, memory_source, memory_target
+                    )
+                    saved_to_memory += 1
+
+            if saved_to_memory:
+                self.logger.info(
+                    f"{saved_to_memory} string(es) salva(s) na memória "
+                    "de tradução."
                 )
-
-            finally:
-
-                self._translate_cancel_event = None
 
             updates = []
 
@@ -499,7 +552,8 @@ class Api:
             return {
                 "translated": len(updates),
                 "pending_remaining": len(pending) - len(updates),
-                "interrupted": interrupted
+                "interrupted": interrupted,
+                "memory_hits": memory_hits
             }
 
         return self._wrap(_translate, lock=False)
@@ -996,6 +1050,54 @@ class Api:
             return {"language_original": code}
 
         return self._wrap(_update)
+
+    # ===================================================
+    # Memória de tradução
+    # ===================================================
+
+    def get_translation_memory(self):
+        """Lista a memória de tradução do projeto (filtrada pelos idiomas do projeto)."""
+
+        def _get():
+            project = self._require_current_project()
+            source = project.get("language_original") or None
+            target = project.get("language_translation", "pt_BR").split("_")[0]
+            rows = self.project_manager.get_all_translation_memory(source, target)
+            return [
+                {
+                    "original": r["original"],
+                    "translated": r["translated"],
+                    "source_lang": r["source_lang"],
+                    "target_lang": r["target_lang"],
+                    "usage_count": r["usage_count"],
+                }
+                for r in rows
+            ]
+
+        return self._wrap(_get)
+
+    def search_translation_memory(self, query_text: str):
+        """Busca na memória de tradução do projeto."""
+
+        def _search():
+            project = self._require_current_project()
+            source = project.get("language_original") or None
+            target = project.get("language_translation", "pt_BR").split("_")[0]
+            rows = self.project_manager.search_translation_memory(
+                query_text, source, target
+            )
+            return [
+                {
+                    "original": r["original"],
+                    "translated": r["translated"],
+                    "source_lang": r["source_lang"],
+                    "target_lang": r["target_lang"],
+                    "usage_count": r["usage_count"],
+                }
+                for r in rows
+            ]
+
+        return self._wrap(_search)
 
     # ===================================================
     # Configuracoes
