@@ -161,23 +161,51 @@ jobs:
             Write-Error "Caminho do ISCC não definido ou inválido."
             exit 1
           }
+          Write-Host "Rodando Inno Setup com versão $version..."
           & $iscc /DMyAppVersion=$version installer.iss
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Inno Setup falhou com código de saída $LASTEXITCODE"
+            exit 1
+          }
 
       - name: Verificar instalador gerado
         shell: pwsh
         run: |
-          $installer = "$env:TEMP\TranslateVN-Setup-Build\TranslateVN-Setup.exe"
-          if (-not (Test-Path $installer)) {
-            Write-Error "Instalador Inno Setup não gerado em $installer"
+          # Procura o instalador em múltiplos locais possíveis
+          $candidatos = @(
+            "Output\TranslateVN-Setup.exe",
+            "$env:TEMP\TranslateVN-Setup-Build\TranslateVN-Setup.exe",
+            (Get-ChildItem -Filter "TranslateVN-Setup.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
+          )
+          $installer = $null
+          foreach ($c in $candidatos) {
+            if ($c -and (Test-Path $c)) {
+              $installer = $c
+              break
+            }
+          }
+
+          if (-not $installer) {
+            Write-Error "Instalador Inno Setup não encontrado em nenhum local esperado."
+            Write-Host "=== Buscando qualquer .exe em Output/ ==="
+            Get-ChildItem -Filter "*.exe" -Path Output\ -Recurse -ErrorAction SilentlyContinue | Select-Object FullName
             exit 1
           }
-          Write-Host "Instalador gerado: $installer"
+
+          Write-Host "Instalador encontrado: $installer"
+          echo "INSTALLER_PATH=$installer" >> $env:GITHUB_ENV
 
       - name: Copiar instalador para Output
         shell: pwsh
         run: |
+          $installer = $env:INSTALLER_PATH
+          if (-not $installer -or -not (Test-Path $installer)) {
+            Write-Error "Caminho do instalador não definido."
+            exit 1
+          }
           New-Item -ItemType Directory -Force -Path Output | Out-Null
-          Copy-Item "$env:TEMP\TranslateVN-Setup-Build\TranslateVN-Setup.exe" "Output\TranslateVN-Setup.exe" -Force
+          Copy-Item $installer "Output\TranslateVN-Setup.exe" -Force
+          Write-Host "Instalador copiado para Output\TranslateVN-Setup.exe"
 
       - name: Upload artifact (instalador Windows)
         uses: actions/upload-artifact@v4
@@ -214,7 +242,7 @@ jobs:
       - name: Instalar dependências do sistema
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
 
       - name: Instalar dependências Python
         run: |
