@@ -10,6 +10,15 @@ import re
 
 from core.logger import Logger
 
+# charset_normalizer é dependência transitória do requests (já em requirements.txt).
+# Usamos para detectar encoding de arquivos .rpy antigos (cp1252/latin-1) que
+# não são utf-8 — comuns em VNs Ren'Py 6/7. Se por qualquer motivo não estiver
+# disponível, caímos em uma lista ordenada de fallbacks.
+try:
+    from charset_normalizer import detect as _detect_encoding
+except Exception:  # pragma: no cover - fallback se a lib não estiver instalada
+    _detect_encoding = None
+
 
 class RenPyParser:
 
@@ -105,10 +114,7 @@ class RenPyParser:
 
         try:
 
-            content = file_path.read_text(
-                encoding="utf-8",
-                errors="ignore"
-            )
+            content = self._read_text(file_path)
 
         except Exception as error:
 
@@ -138,6 +144,88 @@ class RenPyParser:
                 "status": "pending"
 
             })
+
+    # ------------------------------
+
+    def _read_text(self, file_path: Path) -> str:
+
+        """Lê um arquivo .rpy detectando o encoding automaticamente.
+
+        Ordem de tentativa:
+
+        1. utf-8-sig (aceita e remove BOM, comum em arquivos salvos no
+
+           Windows com Bloco de Notepad);
+
+        2. Detecção via charset_normalizer (se disponível);
+
+        3. utf-8 puro;
+
+        4. cp1252 (padrão Windows de VNs Ren'Py 6/7 em português/inglês);
+
+        5. latin-1 (sempre decodifica qualquer byte, último recurso).
+
+        Isso evita que diálogos em VNs antigas (não-utf-8) sejam lidos
+
+        com caracteres corrompidos ou simplesmente sumam da extração.
+        """
+
+        raw = file_path.read_bytes()
+
+        # 1. utf-8 com BOM
+        try:
+
+            return raw.decode("utf-8-sig")
+
+        except UnicodeDecodeError:
+
+            pass
+
+        # 2. Detecção automática via charset_normalizer
+        if _detect_encoding is not None:
+
+            try:
+
+                detection = _detect_encoding(raw)
+
+                if detection and detection.get("encoding"):
+
+                    enc = detection["encoding"]
+
+                    if isinstance(enc, str):
+
+                        try:
+
+                            return raw.decode(enc)
+
+                        except (UnicodeDecodeError, LookupError):
+
+                            pass
+
+            except Exception:
+
+                pass
+
+        # 3. utf-8 puro
+        try:
+
+            return raw.decode("utf-8")
+
+        except UnicodeDecodeError:
+
+            pass
+
+        # 4. cp1252 (Windows / Ren'Py antigo)
+        try:
+
+            return raw.decode("cp1252")
+
+        except UnicodeDecodeError:
+
+            pass
+
+        # 5. latin-1 — nunca falha, mas pode ler bytes ruins como texto
+        return raw.decode("latin-1")
 
     # ------------------------------
 
