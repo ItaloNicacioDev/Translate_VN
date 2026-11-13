@@ -238,15 +238,23 @@ class RenPyExtractor:
 
     # ---------------------------------------------------
 
-    def decompile_rpyc(self, game_folder: str) -> bool:
+    def decompile_rpyc(self, game_folder: str) -> dict:
         """Tenta descompilar usando, nesta ordem:
 
         1. unrpyc_path configurado manualmente (se existir)
         2. unrpyc branch 'master' (baixado/cacheado automaticamente)
         3. unrpyc branch 'legacy' (baixado/cacheado automaticamente)
 
-        Retorna True se algum deles funcionou.
+        Retorna um dict:
+            {"success": bool, "compiled_scripts": list[str]}
+        onde "success" indica se ao menos uma tentativa funcionou e
+        "compiled_scripts" lista os arquivos .rpyc encontrados (para
+        a UI exibir quantos foram processados e quantos ficaram de fora).
         """
+
+        compiled_scripts = [
+            str(f) for f in Path(game_folder).rglob("*.rpyc")
+        ]
 
         manual_path = self.config.get("unrpyc_path")
 
@@ -257,16 +265,21 @@ class RenPyExtractor:
                 self._run_unrpyc(Path(manual_path), game_folder)
 
                 self.logger.info(
+
                     "Descompilado com sucesso usando o unrpyc "
+
                     "configurado manualmente."
+
                 )
 
-                return True
+                return {"success": True, "compiled_scripts": compiled_scripts}
 
             except RuntimeError as error:
 
                 self.logger.warning(
+
                     f"unrpyc configurado manualmente falhou: {error}"
+
                 )
 
         for branch in ("master", "legacy"):
@@ -274,9 +287,13 @@ class RenPyExtractor:
             script = self.tools.ensure_unrpyc(branch)
 
             if script is None:
+
                 # Sem internet ou falha no download - não adianta
+
                 # tentar a outra branch agora, mas não é um erro
+
                 # fatal ainda (pode já ter dado certo com outra).
+
                 continue
 
             try:
@@ -284,21 +301,26 @@ class RenPyExtractor:
                 self._run_unrpyc(script, game_folder)
 
                 self.logger.info(
+
                     f"Descompilado com sucesso usando unrpyc "
+
                     f"({branch})."
+
                 )
 
-                return True
+                return {"success": True, "compiled_scripts": compiled_scripts}
 
             except RuntimeError as error:
 
                 self.logger.warning(
+
                     f"Falha ao descompilar com unrpyc ({branch}): "
+
                     f"{error}"
+
                 )
 
-        return False
-
+        return {"success": False, "compiled_scripts": compiled_scripts}
     # -------------------------------------------------
     # Fluxo completo
     # -------------------------------------------------
@@ -339,30 +361,55 @@ class RenPyExtractor:
         # Descompila scripts .rpyc, se houver
         if game_info["compiled_scripts"]:
 
-            success = self.decompile_rpyc(
+            result = self.decompile_rpyc(
                 game_info["game_folder"]
             )
 
-            if success:
+            if result["success"]:
 
                 # O unrpyc gera os .rpy dentro da própria pasta do
+
                 # jogo, ao lado dos .rpyc. Copiamos para o workspace.
+
                 self.copy_scripts(
+
                     game_info["game_folder"],
+
                     output
+
                 )
 
             else:
 
-                warnings.append(
-                    "Existem arquivos .rpyc compilados, mas não foi "
-                    "possível descompilá-los automaticamente (nem "
-                    "com master nem com legacy do unrpyc). Verifique "
-                    "sua conexão com a internet, ou configure "
-                    "'unrpyc_path' em Configurações apontando para "
-                    "uma cópia própria."
-                )
+                failed = result["compiled_scripts"]
 
+                detalhe = (
+
+                    f" ({len(failed)} arquivo(s): "
+
+                    + ", ".join(Path(f).name for f in failed[:5])
+
+                    + ("..." if len(failed) > 5 else "")
+
+                    + ")"
+
+                ) if failed else ""
+
+                warnings.append(
+
+                    "Existem arquivos .rpyc compilados, mas não foi "
+
+                    "possível descompilá-los automaticamente (nem "
+
+                    "com master nem com legacy do unrpyc)." + detalhe +
+
+                    " Verifique sua conexão com a internet, ou "
+
+                    "configure 'unrpyc_path' em Configurações "
+
+                    "apontando para uma cópia própria."
+
+                )
         for warning in warnings:
 
             self.logger.warning(warning)
