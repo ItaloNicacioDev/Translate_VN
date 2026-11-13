@@ -20,6 +20,7 @@ ISCC_CANDIDATES = [
     Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "Inno Setup 7" / "ISCC.exe",
     Path("E:/Inno Setup 6/ISCC.exe"),
     Path("E:/Inno Setup 7/ISCC.exe"),
+    Path("E:/eagames/Inno Setup 7/ISCC.exe"),
     Path("E:/Program Files/Inno Setup 6/ISCC.exe"),
     Path("E:/Program Files/Inno Setup 7/ISCC.exe"),
     Path("E:/Program Files (x86)/Inno Setup 6/ISCC.exe"),
@@ -58,7 +59,8 @@ def main():
 
     # 3. Compilar unrpyc_master
     unrpyc_exe = ROOT / "unrpyc_master.exe"
-    if not unrpyc_exe.exists():
+    dist_unrpyc = ROOT / "dist" / "unrpyc_master.exe"
+    if not unrpyc_exe.exists() and not dist_unrpyc.exists():
         print("\n[3/6] Compilando unrpyc (master)...")
         run(
             [
@@ -72,6 +74,11 @@ def main():
         )
     else:
         print("\n[3/6] unrpyc_master.exe já existe, pulando.")
+
+    # Garante que o unrpyc_master.exe esteja na raiz (PyInstaller pode ter
+    # colocado em dist/).
+    if dist_unrpyc.exists() and not unrpyc_exe.exists():
+        shutil.copy2(str(dist_unrpyc), str(unrpyc_exe))
 
     # 4. Compilar app principal com PyInstaller
     print("\n[4/6] Compilando app com PyInstaller (--onedir)...")
