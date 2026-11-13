@@ -70,16 +70,30 @@ jobs:
       - name: Instalar Inno Setup
         shell: pwsh
         run: |
-          # Tenta instalar via winget; se falhar, baixa direto do JR Software
-          $iscc = Get-Command ISCC.exe -ErrorAction SilentlyContinue
+          # Tenta localizar o ISCC já instalado; senão, baixa do JR Software
+          $isccPaths = @(
+            "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+            "${env:ProgramFiles}\Inno Setup 6\ISCC.exe",
+            "${env:LOCALAPPDATA}\Programs\Inno Setup 6\ISCC.exe"
+          )
+          $iscc = $isccPaths | Where-Object { Test-Path $_ } | Select-Object -First 1
+
           if (-not $iscc) {
-            Write-Host "Inno Setup não encontrado, baixando instalador..."
+            Write-Host "Inno Setup não encontrado, baixando instalador do JR Software..."
             $url = "https://jrsoftware.org/download.php/is.exe"
             $dest = "$env:TEMP\is_setup.exe"
             Invoke-WebRequest -Uri $url -OutFile $dest
             Start-Process -FilePath $dest -ArgumentList "/VERYSILENT", "/NORESTART", "/DIR=C:\Program Files (x86)\Inno Setup 6" -Wait
-            $env:PATH += ";C:\Program Files (x86)\Inno Setup 6"
+            $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
           }
+
+          if (-not (Test-Path $iscc)) {
+            Write-Error "ISCC.exe não encontrado em $iscc após instalação."
+            exit 1
+          }
+
+          Write-Host "Inno Setup encontrado em: $iscc"
+          echo "ISCC_PATH=$iscc" >> $env:GITHUB_ENV
 
       - name: Compilar unrpyc (master)
         shell: pwsh
@@ -108,7 +122,7 @@ jobs:
         shell: pwsh
         run: |
           if (-not (Test-Path "dist\TranslateVN-GUI\TranslateVN-GUI.exe")) {
-            Write-Error "Build PyInstaller falhou: exe não encontrado."
+            Write-Error "Build PyInstaller falhou: dist\TranslateVN-GUI\TranslateVN-GUI.exe não existe."
             exit 1
           }
 
@@ -116,7 +130,22 @@ jobs:
         shell: pwsh
         run: |
           $version = Get-Content VERSION | Select-Object -First 1
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DMyAppVersion=$version installer.iss
+          $iscc = $env:ISCC_PATH
+          if (-not $iscc -or -not (Test-Path $iscc)) {
+            Write-Error "Caminho do ISCC não definido ou inválido."
+            exit 1
+          }
+          & $iscc /DMyAppVersion=$version installer.iss
+
+      - name: Verificar instalador gerado
+        shell: pwsh
+        run: |
+          $installer = "$env:TEMP\TranslateVN-Setup-Build\TranslateVN-Setup.exe"
+          if (-not (Test-Path $installer)) {
+            Write-Error "Instalador Inno Setup não gerado em $installer"
+            exit 1
+          }
+          Write-Host "Instalador gerado: $installer"
 
       - name: Copiar instalador para Output
         shell: pwsh
@@ -180,7 +209,7 @@ jobs:
       - name: Build app com PyInstaller (--onedir)
         run: |
           pyinstaller --onedir --name TranslateVN-GUI \
-            --add-binary "unrpyc_master;tools/unrpyc_master" \
+            --add-binary "unrpyc_master:tools/unrpyc_master" \
             --add-data "ui:ui" \
             --add-data "core:core" \
             --add-data "engine:engine" \
