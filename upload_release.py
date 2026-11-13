@@ -12,7 +12,7 @@ from pathlib import Path
 # Configuração
 GITHUB_OWNER = "ItaloNicacioDev"
 GITHUB_REPO = "Translate_VN"
-RELEASE_TAG = "v1.3.3"
+RELEASE_TAG = "v1.4.0"
 INSTALLER_PATH = Path(__file__).parent / "Output" / "TranslateVN-Setup.exe"
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 
