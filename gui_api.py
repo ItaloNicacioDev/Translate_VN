@@ -973,6 +973,30 @@ class Api:
 
         return self._wrap(self.project_manager.set_default_language, code)
 
+    def update_project_language(self, code: str):
+
+        """Permite ao usuário sobrescrever o idioma de ORIGEM detectado
+
+        do projeto (ex: forçar "en" quando o detector não achou, ou
+
+        corrigir um código errado lido do options.rpy)."""
+
+        def _update():
+
+            project = self._require_current_project()
+
+            self.project_manager.update_project(
+
+                project["name"],
+
+                language_original=code
+
+            )
+
+            return {"language_original": code}
+
+        return self._wrap(_update)
+
     # ===================================================
     # Configuracoes
     # ===================================================
