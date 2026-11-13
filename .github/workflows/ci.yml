@@ -1,0 +1,207 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  release:
+    types: [ published ]
+
+jobs:
+  # =========================================================
+  # Testes automatizados (roda em Linux e Windows)
+  # =========================================================
+  test:
+    name: Testes ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+
+      - name: Rodar testes
+        run: |
+          python -m pytest tests/ -v --cov=engine --cov=core --cov-report=term-missing
+
+  # =========================================================
+  # Build Windows — instalador .exe via Inno Setup
+  # =========================================================
+  build-windows:
+    name: Build Windows (Installer)
+    needs: test
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Instalar dependências de build
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install unrpa pyinstaller pywebview
+
+      - name: Instalar Inno Setup
+        shell: pwsh
+        run: |
+          # Tenta instalar via winget; se falhar, baixa direto do JR Software
+          $iscc = Get-Command ISCC.exe -ErrorAction SilentlyContinue
+          if (-not $iscc) {
+            Write-Host "Inno Setup não encontrado, baixando instalador..."
+            $url = "https://jrsoftware.org/download.php/is.exe"
+            $dest = "$env:TEMP\is_setup.exe"
+            Invoke-WebRequest -Uri $url -OutFile $dest
+            Start-Process -FilePath $dest -ArgumentList "/VERYSILENT", "/NORESTART", "/DIR=C:\Program Files (x86)\Inno Setup 6" -Wait
+            $env:PATH += ";C:\Program Files (x86)\Inno Setup 6"
+          }
+
+      - name: Compilar unrpyc (master)
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "unrpyc_master.exe")) {
+            pushd tools\unrpyc_master
+            pyinstaller --onefile --name unrpyc_master unrpyc.py
+            popd
+            Copy-Item tools\unrpyc_master\dist\unrpyc_master.exe unrpyc_master.exe
+          }
+
+      - name: Build app com PyInstaller (--onedir)
+        shell: pwsh
+        run: |
+          pyinstaller --onedir --windowed --name TranslateVN-GUI `
+            --icon "app_icon.ico" `
+            --add-binary "unrpyc_master.exe;tools\unrpyc_master" `
+            --add-data "ui;ui" `
+            --add-data "core;core" `
+            --add-data "engine;engine" `
+            --add-data "VERSION;." `
+            --runtime-hook hook_extract_tools.py `
+            gui_main.py
+
+      - name: Verificar build
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "dist\TranslateVN-GUI\TranslateVN-GUI.exe")) {
+            Write-Error "Build PyInstaller falhou: exe não encontrado."
+            exit 1
+          }
+
+      - name: Compilar instalador com Inno Setup
+        shell: pwsh
+        run: |
+          $version = Get-Content VERSION | Select-Object -First 1
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DMyAppVersion=$version installer.iss
+
+      - name: Copiar instalador para Output
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path Output | Out-Null
+          Copy-Item "$env:TEMP\TranslateVN-Setup-Build\TranslateVN-Setup.exe" "Output\TranslateVN-Setup.exe" -Force
+
+      - name: Upload artifact (instalador Windows)
+        uses: actions/upload-artifact@v4
+        with:
+          name: TranslateVN-Setup-Windows
+          path: Output/TranslateVN-Setup.exe
+          retention-days: 30
+
+      - name: Criar release (apenas se tag push)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Output/TranslateVN-Setup.exe
+          generate_release_notes: true
+
+  # =========================================================
+  # Build Linux — tarball via PyInstaller (sem Inno Setup)
+  # =========================================================
+  build-linux:
+    name: Build Linux (tar.gz)
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Instalar dependências do sistema
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
+
+      - name: Instalar dependências Python
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install unrpa pyinstaller pywebview
+
+      - name: Compilar unrpyc (master)
+        run: |
+          if [ ! -f unrpyc_master ]; then
+            pushd tools/unrpyc_master
+            pyinstaller --onefile --name unrpyc_master unrpyc.py
+            popd
+            cp tools/unrpyc_master/dist/unrpyc_master unrpyc_master
+            chmod +x unrpyc_master
+          fi
+
+      - name: Build app com PyInstaller (--onedir)
+        run: |
+          pyinstaller --onedir --name TranslateVN-GUI \
+            --add-binary "unrpyc_master;tools/unrpyc_master" \
+            --add-data "ui:ui" \
+            --add-data "core:core" \
+            --add-data "engine:engine" \
+            --add-data "VERSION:." \
+            --runtime-hook hook_extract_tools.py \
+            gui_main.py
+
+      - name: Empacotar em tar.gz
+        run: |
+          version=$(cat VERSION)
+          tar -czf "TranslateVN-${version}-linux-x64.tar.gz" -C dist TranslateVN-GUI
+
+      - name: Upload artifact (Linux tarball)
+        uses: actions/upload-artifact@v4
+        with:
+          name: TranslateVN-Linux
+          path: TranslateVN-*-linux-x64.tar.gz
+          retention-days: 30
+
+      - name: Criar release (apenas se tag push)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: TranslateVN-*-linux-x64.tar.gz
+          generate_release_notes: true
