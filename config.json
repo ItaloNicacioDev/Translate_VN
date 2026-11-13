@@ -1,0 +1,19 @@
+{
+    "language": "pt_BR",
+    "theme": "dark",
+    "projects_folder": "projects",
+    "backups_folder": "backups",
+    "exports_folder": "exports",
+    "temp_folder": "temp",
+    "auto_backup": true,
+    "auto_save": true,
+    "log_level": "INFO",
+    "unrpyc_path": "",
+    "translation_provider": "google",
+    "translation_fallback_enabled": true,
+    "translation_fallback_order": [
+        "google",
+        "mymemory"
+    ],
+    "translation_provider_settings": {}
+}
