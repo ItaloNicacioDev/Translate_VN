@@ -163,6 +163,21 @@ class Database:
 
         )
         """)
+        self.execute("""
+        CREATE TABLE IF NOT EXISTS translation_memory (
+
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            original TEXT NOT NULL,
+            translated TEXT NOT NULL,
+            source_lang TEXT,
+            target_lang TEXT NOT NULL,
+            usage_count INTEGER DEFAULT 1,
+            created_at TEXT,
+            updated_at TEXT,
+            UNIQUE(original, source_lang, target_lang)
+        )
+        """)
+
 
     def initialize(self):
 
@@ -426,3 +441,106 @@ class Database:
         query = f"UPDATE projects SET {', '.join(sets)} WHERE id=?"
 
         self.execute(query, tuple(params))
+
+    # ===================================================
+    # Memória de tradução (reaproveita strings entre projetos)
+    # ===================================================
+
+    def save_translation_memory(
+        self,
+        original: str,
+        translated: str,
+        source_lang: str | None,
+        target_lang: str
+    ):
+        """Insere ou atualiza uma entrada de memória de tradução.
+
+        Se já existir uma entrada para (original, source_lang, target_lang),
+        atualiza a tradução, incrementa o contador de uso e renova a data.
+        """
+
+        from datetime import datetime
+        now = datetime.now().isoformat()
+
+        self.execute("""
+            INSERT INTO translation_memory(
+                original, translated, source_lang, target_lang,
+                usage_count, created_at, updated_at
+            )
+            VALUES(?,?,?,?,?,?,?)
+            ON CONFLICT(original, source_lang, target_lang) DO UPDATE SET
+                translated=excluded.translated,
+                usage_count=translation_memory.usage_count + 1,
+                updated_at=excluded.updated_at
+        """,
+        (
+            original,
+            translated,
+            source_lang,
+            target_lang,
+            1,
+            now,
+            now
+        ))
+
+    def get_translation_memory(
+        self,
+        original: str,
+        source_lang: str | None,
+        target_lang: str
+    ):
+        """Retorna a tradução salva na memória para a string, ou None."""
+
+        row = self.fetch_one("""
+            SELECT translated FROM translation_memory
+            WHERE original=? AND source_lang IS NOT DISTINCT FROM ? AND target_lang=?
+        """,
+        (original, source_lang, target_lang))
+        return row["translated"] if row else None
+
+    def get_all_translation_memory(
+        self,
+        source_lang: str | None = None,
+        target_lang: str | None = None
+    ):
+        """Lista todas as entradas de memória, opcionalmente filtradas por idioma."""
+
+        query = "SELECT original, translated, source_lang, target_lang, usage_count FROM translation_memory"
+        params = []
+        clauses = []
+        if source_lang is not None:
+            clauses.append("source_lang IS NOT DISTINCT FROM ?")
+            params.append(source_lang)
+        if target_lang is not None:
+            clauses.append("target_lang=?")
+            params.append(target_lang)
+        if clauses:
+            query += " WHERE " + " AND ".join(clauses)
+        query += " ORDER BY usage_count DESC, original"
+        return self.fetch_all(query, tuple(params))
+
+    def search_translation_memory(
+        self,
+        query_text: str,
+        source_lang: str | None,
+        target_lang: str | None
+    ):
+        """Busca entradas de memória contendo query_text no original ou tradução."""
+
+        params = []
+        clauses = []
+        if query_text:
+            clauses.append("(original LIKE ? OR translated LIKE ?)")
+            like = f"%{query_text}%"
+            params.extend([like, like])
+        if source_lang is not None:
+            clauses.append("source_lang IS NOT DISTINCT FROM ?")
+            params.append(source_lang)
+        if target_lang is not None:
+            clauses.append("target_lang=?")
+            params.append(target_lang)
+        query = "SELECT original, translated, source_lang, target_lang, usage_count FROM translation_memory"
+        if clauses:
+            query += " WHERE " + " AND ".join(clauses)
+        query += " ORDER BY usage_count DESC LIMIT 50"
+        return self.fetch_all(query, tuple(params))
