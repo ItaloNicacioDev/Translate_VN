@@ -352,3 +352,25 @@ class ProjectManager:
     def get_default_language(self):
 
         return self.database.get_setting("default_language", "pt_BR")
+
+    def update_project(self, name: str, **updates):
+
+        """Atualiza campos de um projeto existente (ex: language_original)."""
+
+        project_id = self.get_id(name)
+
+        if project_id is None:
+
+            raise RuntimeError(
+
+                f"Projeto '{name}' não encontrado no banco de dados."
+
+            )
+
+        self.database.update_project(project_id, **updates)
+
+        self.logger.info(
+
+            f"Projeto '{name}' atualizado: {', '.join(updates)}"
+
+        )
